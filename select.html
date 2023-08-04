@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Custom Dialog</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background-color: #272829;
+      color: #fff;
+      text-align: center;
+      padding-top: 50px;
+      font-family: 'Montserrat', sans-serif;
+      border-radius: 10px; /* Adjust the value to control the amount of rounding */
+    }
+
+
+    /* Style the cross icon */
+    .cross-icon {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      cursor: pointer;
+      font-size: 20px;
+    }
+
+    /* Style the logo image */
+    #logo {
+      display: block;
+      margin: 0 auto;
+      max-width: 250px;
+    }
+
+    /* Style the buttons */
+    .button-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    button {
+      width: 200px; /* Set a fixed width for the buttons */
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #8dc53e;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transform: scale(1);
+      transition: background-color 0.3s ease-in-out, transform 0.2s ease-in-out;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 520;
+    }
+
+    /* Hover effect on buttons */
+    button:hover {
+      background-color: #8dc53e;
+      transform: scale(1.05); /* Adjust the scale value as desired */
+    }
+
+    /* Hide the scrollbar */
+    body::-webkit-scrollbar {
+      width: 0.5em;
+    }
+
+    body::-webkit-scrollbar-track {
+      background-color: transparent;
+    }
+
+    body::-webkit-scrollbar-thumb {
+      background-color: #8dc53e;
+    }
+  </style>
+</head>
+<body>
+  <!-- Add the cross icon with an ID -->
+  <span id="closeButton" class="cross-icon">✖</span>
+  <!-- Add the logo image -->
+  <img id="logo1" src="assets/icons/png/aigate1.png" alt="Logo 1" style="position: absolute; top: 10px; left: 10px; max-width: 30px;">
+  <img id="logo" src="assets/icons/png/aigate.png" alt="Logo">
+  <h2>Choose an AI to navigate:</h2>
+  <div class="button-container">
+    <button id="chatgpt">ChatGPT</button>
+    <button id="bard">Google Bard</button>
+    <button id="perplexSearch">Perplexity AI: AI Search</button>
+    <button id="perplexChat">Labs Perplexity AI: AI Chat</button>
+    <button id="claude">Claude 2</button>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require("electron");
+
+    const chatgpt = document.getElementById("chatgpt");
+    const bard = document.getElementById("bard");
+    const perplexSearch = document.getElementById("perplexSearch");
+    const perplexChat = document.getElementById("perplexChat");
+    const claude = document.getElementById("claude");
+
+    closeButton.addEventListener("click", () => {
+      ipcRenderer.send("close-dialog");
+    });
+
+    chatgpt.addEventListener("click", () => {
+      ipcRenderer.send("dialog-response", 0);
+    });
+    bard.addEventListener("click", () => {
+      ipcRenderer.send("dialog-response", 1);
+    });
+    perplexSearch.addEventListener("click", () => {
+      ipcRenderer.send("dialog-response", 2);
+    });
+    perplexChat.addEventListener("click", () => {
+      ipcRenderer.send("dialog-response", 3);
+    });
+    claude.addEventListener("click", () => {
+      ipcRenderer.send("dialog-response", 4);
+    });
+  </script>
+</body>
+</html>
