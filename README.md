@@ -39,10 +39,8 @@ You can download the latest releases from the link.
 
 </div>
 
-
-
-<p style="font-style: italic; font-size: 0.9em; opacity: 0.7;"><strong>Note:</strong> We are currently working hard to bring you the macOS and Linux versions of AI Gate. These releases will be available soon, so stay tuned for updates! In the meantime, you can download the latest version for Windows from the link above. Thank you for your patience and support!</p>
-
+> [!NOTE]  
+> We are currently working hard to bring you the macOS and Linux versions of AI Gate. These releases will be available soon, so stay tuned for updates! In the meantime, you can download the latest version for Windows from the link above. Thank you for your patience and support!
 
 
 ## Screenshots
@@ -89,23 +87,29 @@ We warmly welcome your feedback and contributions to improve the AI Gate. If you
       <h2>Support and Donation</h2>
       <p>If you find Ai Gate useful, please consider supporting its development by making a donation. Your contribution will help us continue to improve and maintain the application.</p>
       <p>You can make a donation through the following platforms:</p>
-      <p>
       <div align="center">
-        <a href="https://paypal.me/inulute"><img src="assets/payment/paypal.svg" alt="PayPal" height="41" width="174"></a>
-      </a> <a href="https://www.buymeacoffee.com/inulute" target="_blank">
-        <img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174" style="border-radius: 5px;"> </a> <a href="https://ko-fi.com/inulute">
-         <img height='35' style='border:0px;height:46px;' src='https://az743702.vo.msecnd.net/cdn/kofi3.png?v=0' border='0' alt='Buy Me a Coffee at ko-fi.com'>
-         </a>
+    <a href="https://paypal.me/inulute"><img src="assets/payment/paypal.svg" alt="PayPal" height="41" width="174"></a>
+    <a href="https://www.buymeacoffee.com/inulute" target="_blank">
+        <img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174" style="border-radius: 5px;">
+    </a>
+    <a href="https://ko-fi.com/inulute">
+        <img height='35' style='border:0px;height:46px;' src='https://az743702.vo.msecnd.net/cdn/kofi3.png?v=0' border='0' alt='Buy Me a Coffee at ko-fi.com'>
+    </a>
 
-   <a href="upi://pay?pa=inulute@boi&pn=inulute&cu=INR">
-   <img src="assets/payment/upi.svg" alt="UPI Pay" height="41" width="174" style="border-radius: 5px;">
-   </a>
-   <p style="font-style: italic; font-size: 0.9em; opacity: 0.7;">
-   <strong>UPI ID: inulute@boi</strong>
-   </p>
+  <a href="upi://pay?pa=inulute@boi&pn=inulute&cu=INR">
+      <img src="assets/payment/upi.svg" alt="UPI Pay" height="41" width="174" style="border-radius: 5px;">
+  </a> <br>
+  <em><strong>UPI ID: inulute@boi</strong></em>
+</div>
+
 
 </div> <div align="center">
-      <p style="font-style: italic; font-size: 0.9em; opacity: 0.7;"><strong>Note:</strong> UPI is only available for Indian users.</p> </div>
+
+> [!NOTE]  
+> UPI is only available for Indian users.
+
+
+</div>
 
 <h2>
     👨‍💻 Author
