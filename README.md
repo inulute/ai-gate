@@ -96,7 +96,7 @@ We warmly welcome your feedback and contributions to improve the AI Gate. If you
         <img height='35' style='border:0px;height:46px;' src='https://az743702.vo.msecnd.net/cdn/kofi3.png?v=0' border='0' alt='Buy Me a Coffee at ko-fi.com'>
     </a>
 
-  <a href="upi://pay?pa=inulute@boi&pn=inulute&cu=INR">
+  <a href="https://upi-inulute.vercel.app/">
       <img src="assets/payment/upi.svg" alt="UPI Pay" height="41" width="174" style="border-radius: 5px;">
   </a> <br>
   <em><strong>UPI ID: inulute@boi</strong></em>
