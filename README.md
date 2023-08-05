@@ -88,28 +88,19 @@ We warmly welcome your feedback and contributions to improve the AI Gate. If you
       <p>If you find Ai Gate useful, please consider supporting its development by making a donation. Your contribution will help us continue to improve and maintain the application.</p>
       <p>You can make a donation through the following platforms:</p>
       <div align="center">
-    <a href="https://paypal.me/inulute"><img src="assets/payment/paypal.svg" alt="PayPal" height="41" width="174"></a>
-    <a href="https://www.buymeacoffee.com/inulute" target="_blank">
-        <img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174" style="border-radius: 5px;">
-    </a>
     <a href="https://ko-fi.com/inulute">
-        <img height='35' style='border:0px;height:46px;' src='https://az743702.vo.msecnd.net/cdn/kofi3.png?v=0' border='0' alt='Buy Me a Coffee at ko-fi.com'>
-    </a>
-
+        <img height='41' src='https://az743702.vo.msecnd.net/cdn/kofi3.png?v=0' alt='Buy Me a Coffee at ko-fi.com'></a>
+    <a href="https://www.buymeacoffee.com/inulute" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height= 41px ></a>
+  <a href="https://paypal.me/inulute"><img src="assets/payment/paypal.svg" alt="PayPal" height="41" width="174"></a>
   <a href="https://upi-inulute.vercel.app/">
-      <img src="assets/payment/upi.svg" alt="UPI Pay" height="41" width="174" style="border-radius: 5px;">
+      <img src="assets/payment/upi.svg" alt="UPI Pay" height="41" width="174">
   </a> <br>
-  <em><strong>UPI ID: inulute@boi</strong></em>
 </div>
-
-
-</div> <div align="center">
 
 > [!NOTE]  
 > UPI is only available for Indian users.
 
 
-</div>
 
 <h2>
     👨‍💻 Author
