@@ -1,0 +1,46 @@
+{
+  "name": "ai-gate",
+  "productName": "AI Gate",
+  "version": "2.0.0",
+  "description": "Ai Gate by inulute.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "package-mac": "electron-builder --mac",
+    "package-win": "electron-builder --win",
+    "package-linux": "electron-builder --linux"
+  },
+  "repository": "https://github.com/inulute/ai-gate",
+  "author": "inulute",
+  "license": "MIT",
+  "devDependencies": {
+    "@hunlongyu/electron-icon-builder": "^0.1.5",
+    "electron": "^22.0.0",
+    "electron-builder": "^24.6.3",
+    "electron-icon-builder": "^2.0.1"
+  },
+  "dependencies": {
+    "electron-prompt": "^1.7.0"
+  },
+  "build": {
+    "appId": "com.inulute.aigate",
+    "productName": "Inulute AI Gate",
+    "directories": {
+      "output": "release-builds"
+    },
+    "mac": {
+      "category": "your.app.Productivity",
+      "icon": "assets/icons/mac/favicon.icns"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icons/win/favicon.ico"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/icons/png/favicon.png",
+      "category": "Utility"
+    }
+  }
+}
