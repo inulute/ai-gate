@@ -15,10 +15,8 @@
   "author": "inulute",
   "license": "MIT",
   "devDependencies": {
-    "@hunlongyu/electron-icon-builder": "^0.1.5",
     "electron": "^22.0.0",
-    "electron-builder": "^24.6.3",
-    "electron-icon-builder": "^2.0.1"
+    "electron-builder": "^24.6.3"
   },
   "dependencies": {
     "electron-prompt": "^1.7.0"
