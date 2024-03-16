@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   
   const chatgpt = document.getElementById("chatgpt");
-  const bard = document.getElementById("bard");
+  const bard = document.getElementById("gemini");
   const perplexSearch = document.getElementById("perplexSearch");
   const perplexChat = document.getElementById("perplexChat");
   const claude = document.getElementById("claude");
