@@ -75,7 +75,7 @@ We warmly welcome your feedback and contributions to improve the AI Gate. If you
     <a href="https://ko-fi.com/inulute">
         <img height='41' src='https://az743702.vo.msecnd.net/cdn/kofi3.png?v=0' alt='Buy Me a Coffee at ko-fi.com'></a>
   <a href="https://paypal.me/inulute"><img src="./assets/payment/paypal.svg" alt="PayPal" height="38" width="auto"></a>
-  <a href="https://upi-inulute.vercel.app/">
+  <a href="https://upi.inulute.com/">
       <img src="./assets/payment/upi.svg" alt="UPI Pay" height="38" width="auto">
   </a> <br>
 </div>
