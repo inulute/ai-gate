@@ -9,7 +9,7 @@
 From AI Gate, you can access ChatGPT, Gemini, Perplexity, Claude all from one easy-to-use app. 🖥️
 
 <div align="center">
-  <a href="https://aigate.vercel.app">
+  <a href="https://aigate.inulute.com">
     <img src="https://img.shields.io/badge/website-up-brightgreen?style=for-the-badge" alt="Website Badge">
    </a>
 </div>
