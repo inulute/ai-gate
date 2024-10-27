@@ -1,0 +1,278 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background-color: #1e1e1e;
+  color: #ffffff;
+}
+
+body {
+  display: flex;
+}
+
+#sidebar {
+  width: 50px; 
+  height: 100%;
+  background-color: #252526;
+  padding: 15px 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#sidebar button {
+  background: none;
+  border: none;
+  margin-bottom: 20px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+#sidebar button img {
+  width: 30px; 
+  height: 30px; 
+  filter: grayscale(1) brightness(0.8);
+  transition: filter 0.3s;
+}
+
+#sidebar button:hover img {
+  filter: none;
+}
+
+#sidebar button:hover {
+  transform: scale(1.1);
+}
+
+#layout-buttons {
+  margin-top: auto;
+}
+
+#layout-buttons button {
+  background: none;
+  border: none;
+  margin-bottom: 20px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+#layout-buttons button img {
+  width: 25px; 
+  height: 25px; 
+  filter: grayscale(1) brightness(0.8);
+  transition: filter 0.3s;
+}
+
+#layout-buttons button:hover img {
+  filter: none;
+}
+
+#layout-buttons button:hover {
+  transform: scale(1.1);
+}
+
+#main-content {
+  flex-grow: 1;
+  overflow: hidden;
+  height: 100%;
+  padding: 10px;
+  background-color: #1e1e1e;
+}
+
+#tabs-container {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  gap: 15px;
+}
+
+.tab-cell {
+  display: flex;
+  flex-direction: column;
+  background-color: #2d2d2d;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.tab-cell-header {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  background-color: #3a3d41;
+}
+
+.tab-cell-header select {
+  background-color: #3a3d41;
+  border: none;
+  color: #ffffff;
+  padding: 8px;
+  margin-right: 5px;
+  font-size: 14px;
+  border-radius: 4px;
+}
+
+.tab-cell-header select:focus {
+  outline: none;
+}
+
+.tab-cell-header button {
+  background-color: #3a3d41;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  margin-left: auto;
+  font-size: 18px;
+  padding: 5px;
+}
+
+.tab-cell-header button:hover {
+  color: #e06c75;
+}
+
+.webview-container {
+  flex-grow: 1;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.loader {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: none;
+}
+
+.loader:after {
+  content: '';
+  display: block;
+  width: 64px;
+  height: 64px;
+  margin: 1px;
+  border-radius: 50%;
+  border: 6px solid #fff;
+  border-color: #fff transparent #fff transparent;
+  animation: loader-animation 1.2s linear infinite;
+}
+
+@keyframes loader-animation {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+button:focus {
+  outline: none;
+}
+
+#landing-container {
+  text-align: center;
+  margin-top: 50px;
+}
+
+#landing-container h1 {
+  font-size: 36px;
+  margin-bottom: 20px;
+}
+
+#landing-container p {
+  font-size: 18px;
+  margin-bottom: 40px;
+}
+
+#tool-selection {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+#tool-selection button {
+  background-color: #2d2d2d;
+  border: none;
+  margin: 10px;
+  padding: 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 150px;
+  text-align: center;
+  color: #ffffff;
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+#tool-selection button:hover {
+  background-color: #3a3d41;
+  transform: translateY(-5px);
+}
+
+#tool-selection img.icon-large {
+  width: 60px;
+  height: 60px;
+  margin-bottom: 10px;
+}
+
+#tool-selection span {
+  display: block;
+  font-size: 16px;
+  margin-top: 5px;
+}
+
+.icon {
+  width: 30px; 
+  height: 30px; 
+}
+
+/* Tooltip styles */
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: max-content;
+  background-color: #3a3d41;
+  color: #fff;
+  text-align: center;
+  padding: 5px 8px;
+  border-radius: 4px;
+  position: absolute;
+  z-index: 1;
+  left: 110%;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+}
+
+.tooltip .tooltiptext::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  margin-top: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent #3a3d41 transparent transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #555;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #777;
+}

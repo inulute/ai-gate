@@ -1,3 +1,4 @@
-.DS_Store
-release-builds/
-node_modules/
+node_modules
+release-builds
+webpack.config.js
+package-lock.json

@@ -1,13 +1,45 @@
+<!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <link rel="stylesheet" href="assets/css/style.css">
-  <link rel="stylesheet" href="assets/css/no-topbar.css">
-  <script defer src="assets/js/renderer.js"></script>
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline';">
-  <title>AI Gate</title>
+  <title>Ai-Gate</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <webview id="webview" autosize="on" src="https://aigate.vercel.app"></webview>
+  <div id="sidebar">
+    <button onclick="requestNewTab('chatgpt')">
+      <img src="icons/openai-icon.svg" alt="ChatGPT" class="icon" title="ChatGPT">
+    </button>
+    <button onclick="requestNewTab('claude')">
+      <img src="icons/claude-ai-icon.svg" alt="Claude" class="icon" title="Claude">
+    </button>
+    <button onclick="requestNewTab('perplexity')">
+      <img src="icons/perplexity-ai-icon.svg" alt="Perplexity AI" class="icon" title="Perplexity AI">
+    </button>
+    <button onclick="requestNewTab('perplexity-labs')">
+      <img src="icons/perplexity-labs-icon.svg" alt="Perplexity Labs" class="icon" title="Perplexity Labs">
+    </button>
+    <button onclick="requestNewTab('gemini')">
+      <img src="icons/gemini-icon.svg" alt="Gemini" class="icon" title="Gemini">
+    </button>
+
+
+    
+    <div id="layout-buttons">
+      <button onclick="changeLayout('1x1')">
+        <img src="icons/layout1.svg" alt="1x1 Layout" class="icon" title="1x1 Layout">
+      </button>
+      <button onclick="changeLayout('2x1')">
+        <img src="icons/layout2.svg" alt="2x1 Layout" class="icon" title="2x1 Layout">
+      </button>
+      <button onclick="changeLayout('2x2')">
+        <img src="icons/layout3.svg" alt="2x2 Layout" class="icon" title="2x2 Layout">
+      </button>
+    </div>
+  </div>
+  <div id="main-content">
+    <div id="tabs-container"></div>
+  </div>
+  <script src="renderer.bundle.js"></script>
+  
 </body>
 </html>

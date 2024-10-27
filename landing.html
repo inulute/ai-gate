@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="UTF-8">
+  <title>AI Gate - Choose Your AI</title>
+  <link rel="stylesheet" href="landing.css">
+  <link href='https://fonts.googleapis.com/css?family=Varela+Round&display=swap' rel='stylesheet'>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+  <header>
+    <img id="logo1" src="icons/aigate.svg" alt="AI Gate Logo" class="logo-small">
+    <img id="logo" src="icons/ai-gate.svg" alt="AI Gate" class="logo-large">
+  </header>
+
+  <main>
+    <h2>Choose an AI to navigate:</h2>
+    <div class="button-container">
+      <button id="chatgpt" onclick="selectTool('chatgpt')">ChatGPT</button>
+      <button id="gemini" onclick="selectTool('gemini')">Google Gemini</button>
+      <button id="perplexSearch" onclick="selectTool('perplexity')">Perplexity AI Search</button>
+      <button id="perplexChat" onclick="selectTool('perplexity-labs')">Perplexity AI Chat</button>
+      <button id="claude" onclick="selectTool('claude')">Claude 2</button>
+    </div>
+
+    <div id="updateContainer">
+      <p id="versionDisplay">Current Version: Checking...</p>
+    </div>
+  </main>
+
+  <footer>
+    <p>Made with ❤️ by <a href="https://github.com/inulute" class="footer-link" target="_blank">inulute</a></p>
+  </footer>
+
+  <div id="bottomVersionInfo" class="version-info">Version Info</div>
+
+
+  <script>
+    function selectTool(toolName) {
+      window.electronAPI.selectTool(toolName);
+    }
+
+    function compareVersions(v1, v2) {
+            const parts1 = v1.split('.').map(Number);
+            const parts2 = v2.split('.').map(Number);
+            
+            for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+                const part1 = parts1[i] || 0;
+                const part2 = parts2[i] || 0;
+                
+                if (part1 > part2) return 1;
+                if (part1 < part2) return -1;
+            }
+            
+            return 0;
+        }
+
+    async function checkForUpdates() {
+      try {
+        const currentVersion = await fetch('crrtver.inu').then(response => response.text());
+        const response = await fetch('https://raw.githubusercontent.com/inulute/ai-gate/main/package.json');
+        const { version: latestVersion } = await response.json();
+
+        const versionDisplay = document.getElementById("updateContainer");
+
+        if (compareVersions(latestVersion, currentVersion) === 1) {
+          versionDisplay.innerHTML = `
+            <p style="color: #4EB1BA;">Update Available! v${latestVersion}</p>
+            <button id="updateButton">Update Now</button>
+          `;
+          document.getElementById("updateButton").addEventListener("click", () => {
+            window.open("https://github.com/inulute/ai-gate/releases/latest", "_blank");
+          });
+        } else {
+          versionDisplay.innerHTML = `
+            <p style="color: lightyellow; font-size: x-small;">
+            </p>
+            <a href="https://donate.inulute.com" target="_blank" style="color: rgb(95, 137, 95); text-decoration: underline;">Please consider Donating</a>
+          `;
+        }
+        bottomVersionInfo.innerText = `Version: ${currentVersion}`;
+      } catch (error) {
+        console.error("Error fetching version file:", error);
+        document.getElementById("versionDisplay").innerText = "Error checking for updates.";
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      checkForUpdates();
+    });
+  </script>
+</body>
+</html>

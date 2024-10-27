@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./assets/icons/png/aigaten.svg" alt="AI Gate Logo" style="display: block; margin: auto; background-color: 0d1116; border-radius: 20px" />
+  <img src="./icons/ai-gate.svg" alt="AI Gate Logo" style="display: block; margin: auto; background-color: 0d1116; border-radius: 20px" width=400px/>
 
 </p>
 
@@ -7,6 +7,7 @@
 
 <div align="center">
 From AI Gate, you can access ChatGPT, Gemini, Perplexity, Claude all from one easy-to-use app. 🖥️
+&nbsp;
 
 <div align="center">
   <a href="https://aigate.inulute.com">
@@ -16,15 +17,15 @@ From AI Gate, you can access ChatGPT, Gemini, Perplexity, Claude all from one ea
 
 </div>
 
-## Features
+## ⚙️ Features
 
 - **AI Tool Collection:** Access a curated selection of cutting-edge AI tools in one place. 🧰
 - **User-Friendly Interface:** Intuitive and visually appealing interface for seamless interactions. 🎨
 - **Fast and Efficient:** Instantly harness the power of AI without any delays or complications. ⚡
 - **Cross-Platform Compatibility:** Available for Windows, Linux and macOS. 🖥️
-- **Shortcuts to Switch AI's instantly:** You can switch AI tools using shortcuts. [Learn More about shortcuts.](https://aigate.inulute.com/instructions) 🌐
+- **Open multiple tools:** Open multiple tools at the same time. 🚀
 
-## 📦Releases
+## 📦 Releases
 
 You can download the latest releases from the link.
 
@@ -36,40 +37,30 @@ You can download the latest releases from the link.
 
 </div>
 
-> [!NOTE]  
-> macOS and Linux versions of AI Gate are now available. Thank you for your patience and support!
 
+## 🖼️ Screenshots
 
-## Screenshots
-
-![AI Gate App Screenshot](./assets/screenshots/aigate.png)
+![AI Gate App Screenshot](./assets/screenshots/mockup-ai-gate.png)
 
 
 
-| ChatGPT                                       | Google Gemini                                  |
+| Home                                      | Layout 1                                  |
 |:---------------------------------------------:|:--------------------------------------------:|
-| <img src="./assets/screenshots/chatgpt.png" width="1000" alt="ChatGPT"/> | <img src="./assets/screenshots/gemini.png" width="1000" alt="Gemini"/> |
+| <img src="./assets/screenshots/home.png" width="1000" alt="Home Screen"/> | <img src="./assets/screenshots/layout1.png" width="1000" alt="Layout 1"/> |
 &nbsp;
 
-| Perplexity                                    | Claude2                                       |
+| Layout 2                                    | Layout 3                                       |
 |:--------------------------------------------:|:--------------------------------------------:|
-| <img src="./assets/screenshots/perplexity.png" width="1000" alt="Perplexity"/> | <img src="./assets/screenshots/claude.png" width="1000" alt="Claude2"/> |
+| <img src="./assets/screenshots/layout2.png" width="1000" alt="2 Ai tools together"/> | <img src="./assets/screenshots/layout3.png" width="1000" alt="4 Ai tools together"/> |
 
 
-## Contributing
+## 📢 Feedback
 
-We welcome contributions to make AI Gate even better! If you have any ideas, bug reports, or feature requests, please feel free to create an issue or submit a pull request in the [GitHub repository](https://github.com/inulute/ai-gate).
+We warmly welcome your feedback to improve the AI Gate. If you encounter any issues or have ideas for enhancements, please submit them through GitHub issues.
 
-## 📢 Feedback and Contributions
+## ❣️ Support and Donations 
 
-We warmly welcome your feedback and contributions to improve the AI Gate. If you encounter any issues or have ideas for enhancements, please submit them through GitHub issues or create a pull request. 😊
-
-## Support and Donations ❣️
-
-<div align=center>
-<img src="./assets/payment/dunno2.svg" alt="Dunno" width="80"/> 
-      
-</div>
+If you find AI Gate helpful, please consider supporting the project. Your contributions help us maintain and improve the app. 🙏
 
   <div align="center">
     <a href="https://ko-fi.com/inulute">
@@ -87,20 +78,6 @@ We warmly welcome your feedback and contributions to improve the AI Gate. If you
 
 ## 📝 License
 
-AI Gate is released under the MIT License.
-
-<div align="center">
-
-<a href="https://github.com/inulute/ai-gate/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/inulute/ai-gate?style=for-the-badge" alt="License">
-  </a>
-
-  </div>
-
-## 🤝 Acknowledgments
-
-We would like to extend our gratitude to the open-source community and the creators of the AI tools integrated into AI Gate.
-
-If you have any questions or need assistance, don't hesitate to reach out. 🤖💡
+AI Gate is released under the GPL-v3 License. Please refer to the [LICENSE](./LICENSE) file for more information.
 
 ---
