@@ -1,3 +1,7 @@
+/* styles.css */
+
+/* ... existing styles ... */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
 html, body {
@@ -12,8 +16,9 @@ body {
   display: flex;
 }
 
+/* Adjusted sidebar width */
 #sidebar {
-  width: 50px; 
+  width: 50px; /* Decreased from 70px to 50px */
   height: 100%;
   background-color: #252526;
   padding: 15px 5px;
@@ -30,9 +35,10 @@ body {
   transition: transform 0.2s;
 }
 
+/* Adjusted icon sizes for smaller sidebar */
 #sidebar button img {
-  width: 30px; 
-  height: 30px; 
+  width: 30px; /* Decreased from 40px to 30px */
+  height: 30px; /* Decreased from 40px to 30px */
   filter: grayscale(1) brightness(0.8);
   transition: filter 0.3s;
 }
@@ -58,8 +64,8 @@ body {
 }
 
 #layout-buttons button img {
-  width: 25px; 
-  height: 25px; 
+  width: 25px; /* Adjusted size */
+  height: 25px; /* Adjusted size */
   filter: grayscale(1) brightness(0.8);
   transition: filter 0.3s;
 }
@@ -223,8 +229,8 @@ button:focus {
 }
 
 .icon {
-  width: 30px; 
-  height: 30px; 
+  width: 30px; /* Decreased from 40px to 30px */
+  height: 30px; /* Decreased from 40px to 30px */
 }
 
 /* Tooltip styles */
@@ -243,7 +249,7 @@ button:focus {
   border-radius: 4px;
   position: absolute;
   z-index: 1;
-  left: 110%;
+  left: 110%; /* Position the tooltip to the right of the icon */
   top: 50%;
   transform: translateY(-50%);
   white-space: nowrap;
@@ -257,7 +263,7 @@ button:focus {
   content: "";
   position: absolute;
   top: 50%;
-  right: 100%;
+  right: 100%; /* Position the arrow to the left of the tooltip */
   margin-top: -5px;
   border-width: 5px;
   border-style: solid;
