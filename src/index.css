@@ -1,0 +1,443 @@
+/* Tailwind Base */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+ 
+/* Light Theme Variables */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 10% 3.9%;
+    --radius: 0.5rem;
+    
+    /* Animation Variables */
+    --transition-fast: 150ms;
+    --transition-normal: 300ms;
+    --transition-slow: 500ms;
+    --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-smooth: cubic-bezier(0.65, 0, 0.35, 1);
+  }
+ 
+  /* Dark Theme Variables */
+  .dark {
+    --background: 0 0% 8%; /* Darker background */
+    --foreground: 0 0% 98%;
+    
+    --card: 0 0% 11%; /* Darker card background */
+    --card-foreground: 0 0% 98%;
+    
+    --popover: 0 0% 13%; /* Darker popover */
+    --popover-foreground: 0 0% 98%;
+    
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    
+    --secondary: 0 0% 15%; /* Darker secondary */
+    --secondary-foreground: 0 0% 98%;
+    
+    --muted: 0 0% 15%;
+    --muted-foreground: 240 5% 84.9%;
+    
+    --accent: 0 0% 17%; /* Darker accent */
+    --accent-foreground: 0 0% 98%;
+    
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    
+    --border: 0 0% 20%; /* Darker border */
+    --input: 0 0% 20%;
+    --ring: 240 4.9% 83.9%;
+  }
+}
+ 
+/* Base Element Styling */
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+  }
+  
+  /* IMPORTANT: Remove theme transitions from HTML */
+  html {
+    scroll-behavior: smooth;
+    transition: none !important;
+  }
+  
+  /* Turn off theme transitions */
+  html * {
+    transition-property: none !important;
+  }
+}
+
+/* Selective transitions for UI elements (not theme) */
+button, 
+.hover-effect, 
+.sidebar-toggle, 
+.dropdown-item,
+.select-content,
+.tooltip {
+  transition-property: transform, opacity, box-shadow !important;
+  transition-duration: var(--transition-normal);
+  transition-timing-function: var(--ease-smooth);
+}
+
+/* Smooth transitions for sidebar width */
+.transition-width {
+  transition-property: width !important;
+  transition-timing-function: var(--ease-smooth);
+  transition-duration: var(--transition-normal);
+}
+
+/* Button Styles */
+button {
+  will-change: transform, opacity;
+}
+
+button:active {
+  transform: scale(0.95);
+}
+
+.btn-hover-effect:hover {
+  filter: brightness(0.9);
+}
+
+/* Improved focus states for accessibility */
+*:focus-visible {
+  outline: 2px solid hsl(var(--primary)/50%);
+  outline-offset: 2px;
+}
+
+/* Dropdown and Select Styles */
+.select-content {
+  background-color: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 50 !important;
+  animation: slideDown 0.2s ease-out;
+  transform-origin: top center;
+}
+
+.select-item {
+  padding: 0.5rem 0.75rem;
+  margin: 0.1rem 0;
+  cursor: pointer;
+  user-select: none;
+  border-radius: calc(var(--radius) - 2px);
+  outline: none !important;
+}
+
+.select-item:hover {
+  background-color: hsl(var(--muted)/50%);
+}
+
+.select-item[data-highlighted] {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+}
+
+.select-trigger {
+  background-color: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  min-height: 2.5rem;
+}
+
+.select-trigger:focus {
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--primary)/30%);
+}
+
+/* Ensure popover content is always on top */
+[data-radix-popper-content-wrapper] {
+  z-index: 9999 !important;
+}
+
+/* Dialog and Sheet Styles */
+.sheet-footer {
+  padding-top: 1rem;
+  margin-top: 1rem;
+  border-top: 1px solid hsl(var(--border));
+}
+
+.dialog-overlay,
+.sheet-overlay {
+  z-index: 40;
+}
+
+.dialog-content,
+.sheet-content {
+  z-index: 50;
+}
+
+/* Sidebar Animation Styles */
+.sidebar-enter {
+  transform: translateX(-100%);
+}
+
+.sidebar-enter-active {
+  transform: translateX(0);
+  transition: transform var(--transition-normal) var(--ease-bounce) !important;
+}
+
+.sidebar-exit {
+  transform: translateX(0);
+}
+
+.sidebar-exit-active {
+  transform: translateX(-100%);
+  transition: transform var(--transition-normal) var(--ease-smooth) !important;
+}
+
+/* Fix for overlay blur on sidebar */
+.bg-card {
+  backdrop-filter: blur(8px);
+}
+
+/* Hover Action Styles */
+.hover-action {
+  opacity: 0;
+  transition: opacity var(--transition-fast) var(--ease-smooth) !important;
+}
+
+.group:hover .hover-action {
+  opacity: 1;
+}
+
+/* Tooltip Animations */
+.tooltip-enter {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.tooltip-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition-property: opacity, transform;
+  transition-duration: var(--transition-fast);
+  transition-timing-function: var(--ease-smooth), var(--ease-bounce);
+  transition-delay: 0s;
+}
+
+/* Element Transitions */
+.w-full, .w-10, .h-10 {
+  transition-property: width, height;
+  transition-duration: var(--transition-normal);
+  transition-timing-function: var(--ease-smooth);
+  transition-delay: 0s;
+}
+
+/* Shadow Effects */
+.elevated-shadow {
+  box-shadow: 
+    0 1px 3px rgba(0,0,0,0.12),
+    0 1px 2px rgba(0,0,0,0.24);
+  transition: box-shadow var(--transition-normal) var(--ease-smooth) !important;
+}
+
+.elevated-shadow:hover {
+  box-shadow: 
+    0 10px 20px rgba(0,0,0,0.19),
+    0 6px 6px rgba(0,0,0,0.23);
+}
+
+/* Custom Button Sizes */
+.size-xs {
+  height: 24px;
+  padding-left: 8px;
+  padding-right: 8px;
+  font-size: 12px;
+}
+
+/* Animation Keyframes */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Animation Classes */
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+.fade-in {
+  animation: fadeIn var(--transition-normal) ease-in;
+}
+
+/* Fix for sticky headers */
+.sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(5px);
+}
+
+/* Better toast animations */
+.toast-enter {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+.toast-enter-active {
+  transform: translateY(0);
+  opacity: 1;
+  transition: transform 0.3s, opacity 0.3s !important;
+}
+
+.toast-exit {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.toast-exit-active {
+  transform: translateY(100%);
+  opacity: 0;
+  transition: transform 0.3s, opacity 0.3s !important;
+}
+
+/* Custom Spacing */
+.py-2\.5 {
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+}
+
+/* Fix overflow issues */
+.overflow-x-hidden {
+  overflow-x: hidden;
+}
+
+/* New Addition - Fix for Electron WebView */
+webview {
+  display: inline-flex;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Fix for layout adjustments */
+.grid-cols-1, .grid-cols-2, .grid-cols-3 {
+  transition: grid-template-columns var(--transition-normal) var(--ease-smooth) !important;
+}
+
+/* Fix for when no tool is selected */
+.empty-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: hsl(var(--muted-foreground));
+  background-color: hsl(var(--secondary)/20%);
+  border-radius: var(--radius);
+  border: 1px dashed hsl(var(--border));
+}
+
+.empty-panel:hover {
+  background-color: hsl(var(--secondary)/30%);
+}
+
+/* Sidebar toggle button */
+.sidebar-toggle-btn {
+  background-color: hsl(var(--card));
+  border-radius: 9999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease, background-color 0.2s ease !important;
+}
+
+.sidebar-toggle-btn:hover {
+  transform: scale(1.05);
+  background-color: hsl(var(--accent));
+}
+
+/* Custom Scrollbar Styling */
+@layer base {
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--muted)/30%);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground)/40%);
+    border-radius: 4px;
+    transition: background-color var(--transition-fast) ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground)/60%);
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background: hsl(var(--muted-foreground)/80%);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: hsl(var(--muted)/30%);
+  }
+
+  /* Dark theme scrollbar */
+  .dark ::-webkit-scrollbar-track {
+    background: hsl(var(--muted)/20%);
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground)/30%);
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground)/50%);
+  }
+
+  .dark ::-webkit-scrollbar-thumb:active {
+    background: hsl(var(--muted-foreground)/70%);
+  }
+
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground)/40%) hsl(var(--muted)/30%);
+  }
+
+  .dark * {
+    scrollbar-color: hsl(var(--muted-foreground)/30%) hsl(var(--muted)/20%);
+  }
+}

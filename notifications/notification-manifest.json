@@ -1,0 +1,11 @@
+{
+  "notifications": [
+    {
+      "id": "1",
+      "title": "AI Gate v4.0.0 — Faster, smoother, smarter",
+      "filename": "notification-1.md",
+      "priority": "high",
+      "date": "2025-10-06"
+    }
+  ]
+}
