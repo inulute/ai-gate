@@ -40,7 +40,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setSettings: (settings: any) => ipcRenderer.invoke('set-settings', settings),
   showWindow: () => ipcRenderer.invoke('show-window'),
   setAutostart: (enabled: boolean) => ipcRenderer.invoke('set-autostart', enabled),
-  getAppVersion: () => process.env.npm_package_version || '4.0.0',
+  getAppVersion: () => process.env.npm_package_version || '4.0.1',
   openExternal: (url: string) => {
     console.log('electronAPI.openExternal called with:', url);
     try {

@@ -1,9 +1,9 @@
-# AI Gate v4.0.0 is here 🚀
+# AI Gate v4.0.1 is here 🚀
 
 The biggest AI Gate drop yet. New UI. Smoother. Snappier. Yours.
 
 <div style="text-align: center;">
-  <img src="../screenshots/Screenshot1.png" alt="AI Gate v4.0.0" />
+  <img src="../screenshots/Screenshot1.png" alt="AI Gate v4.0.1" />
 </div>
 
 ---

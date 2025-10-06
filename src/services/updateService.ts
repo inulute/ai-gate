@@ -68,10 +68,10 @@ class UpdateService {
   private getCurrentVersion(): string {
     const version = (typeof window !== 'undefined' && (window as any).electronAPI?.getAppVersion?.()) ||
                    (typeof window !== 'undefined' && (window as any).APP_VERSION) ||
-                   '4.0.0'
+                   '4.0.1'
     
     console.log('Current app version detected:', version);
-    return version || '4.0.0';
+    return version || '4.0.1';
   }
 
   private async fetchLatestRelease(): Promise<any> {

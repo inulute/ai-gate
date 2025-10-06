@@ -22,7 +22,7 @@
 
 ---
 
-## 🎉 What's New in v4.0.0
+## 🎉 What's New in v4.0.1
 
 <table>
 <tr>

@@ -96,6 +96,7 @@ function createWindow() {
       webSecurity: true,
       allowRunningInsecureContent: false,
       devTools: false,
+      nativeWindowOpen: true,
       preload: path.join(__dirname, 'preload.js'),
       // backgroundThrottling: false
     }
@@ -167,14 +168,22 @@ function createWindow() {
     return { action: 'allow' };
   });
 
-  // Configure session for webviews
+  // Configure session headers only for our app, do not override external sites (e.g., Google auth)
   session.defaultSession.webRequest.onHeadersReceived((details: any, callback: any) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        'Content-Security-Policy': "default-src 'self' 'unsafe-inline' 'unsafe-eval' *"
+    try {
+      const url = details.url || '';
+      const isAppUrl = url.startsWith('file://') || url.startsWith('http://localhost:5173');
+      if (isAppUrl) {
+        callback({
+          responseHeaders: {
+            ...details.responseHeaders,
+            'Content-Security-Policy': "default-src 'self' 'unsafe-inline' 'unsafe-eval' *"
+          }
+        });
+        return;
       }
-    });
+    } catch {}
+    callback({ responseHeaders: details.responseHeaders });
   });
   
   // Create a persistent session for webviews to retain logins

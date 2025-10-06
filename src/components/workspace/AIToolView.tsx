@@ -314,9 +314,9 @@ export const AIToolView = ({ tool, instance, isVisible }: AIToolViewProps) => {
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 onClick={handleClose}
-                className="text-destructive focus:text-destructive hover:bg-secondary"
+                className="text-red-500 focus:text-red-500 hover:bg-red-500/10"
               >
-                <X className="h-3.5 w-3.5 mr-2" />
+                <X className="h-3.5 w-3.5 mr-2 text-red-500" />
                 Close Tool
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -328,9 +328,9 @@ export const AIToolView = ({ tool, instance, isVisible }: AIToolViewProps) => {
           <webview
             ref={webviewRef}
             className="w-full h-full"
-            useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+            useragent={navigator.userAgent}
             title={tool.name}
-            webpreferences="contextIsolation=yes, nodeIntegration=no"
+            webpreferences="contextIsolation=yes, nodeIntegration=no, nativeWindowOpen=yes"
             partition="persist:webtool"
           />
         ) : (

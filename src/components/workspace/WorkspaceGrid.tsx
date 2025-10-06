@@ -72,13 +72,15 @@ export const WorkspaceGrid = () => {
           );
         })}
       
-      {visibleInstances.length === 0 && (
-        <div className="border border-border rounded-lg flex items-center justify-center text-muted-foreground bg-secondary/50 dark:bg-secondary/20">
+      {visibleInstances.length === 0 ? (
+        <div 
+          className="border border-border rounded-lg flex items-center justify-center text-muted-foreground bg-secondary/50 dark:bg-secondary/20"
+          style={{ gridColumn: '1 / -1', minHeight: '200px' }}
+        >
           Select an AI tool from sidebar
         </div>
-      )}
-      
-      {Array.from({ length: emptySlots }).map((_, i) => (
+      ) : (
+        Array.from({ length: emptySlots }).map((_, i) => (
         <div
           key={`empty-${i}`}
           className="border border-border rounded-lg flex items-center justify-center text-muted-foreground bg-secondary/50 dark:bg-secondary/20"
@@ -88,7 +90,8 @@ export const WorkspaceGrid = () => {
         >
           Select an AI tool from sidebar
         </div>
-      ))}
+        ))
+      )}
     </div>
   );
 };
