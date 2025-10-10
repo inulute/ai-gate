@@ -2,7 +2,7 @@
 
 <img src="./icons/ai-gate.svg" alt="AI Gate" width="240px" style="margin-bottom: 12px"/>
 
-[![Download AI Gate v4.0.1](https://img.shields.io/badge/Download-v4.0.1-blue?style=for-the-badge)](https://github.com/inulute/ai-gate/releases/latest)
+[![Download AI Gate v4.0.2](https://img.shields.io/badge/Download-v4.0.2-blue?style=for-the-badge)](https://github.com/inulute/ai-gate/releases/latest)
 
 </div>
 
@@ -10,7 +10,7 @@
 
 > All your AI tools. One beautiful app.
 
-**Release:** v4.0.1  •  Date: 2025-10-06
+**Release:** v4.0.2  •  Date: 2025-10-06
 
 ---
 

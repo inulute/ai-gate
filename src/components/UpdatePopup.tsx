@@ -31,18 +31,22 @@ export const UpdatePopup = ({ isOpen, onClose, releaseInfo }: UpdatePopupProps) 
   const handleDownload = async () => {
     try {
       setIsOpening(true);
+      console.log('UpdatePopup: Starting download process...');
       await updateService.openReleasesPage();
+      console.log('UpdatePopup: Successfully opened releases page');
       toast({
         title: "Opening Releases Page",
         description: "The GitHub releases page has been opened in your browser.",
         duration: 3000
       });
     } catch (error) {
+      console.error('UpdatePopup: Error opening releases page:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       toast({
         title: "Failed to Open",
-        description: "Failed to open the releases page. Please try again.",
+        description: `Failed to open the releases page: ${errorMessage}. Please try again.`,
         variant: "destructive",
-        duration: 3000
+        duration: 5000
       });
     } finally {
       setIsOpening(false);

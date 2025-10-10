@@ -1,10 +1,14 @@
-# AI Gate v4.0.1 is here 🚀
+# AI Gate v4.0.2 [HOTFIX] is here 🚀
 
 The biggest AI Gate drop yet. New UI. Smoother. Snappier. Yours.
 
 <div style="text-align: center;">
-  <img src="../screenshots/Screenshot1.png" alt="AI Gate v4.0.1" />
+  <img src="../screenshots/Screenshot1.png" alt="AI Gate v4.0.2" />
 </div>
+
+---
+> [!NOTE] 
+> If Download Button doesn't work, get the update manually from the [Releases page](https://github.com/inulute/ai-gate/releases).
 
 ---
 

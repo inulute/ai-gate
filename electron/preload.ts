@@ -40,12 +40,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setSettings: (settings: any) => ipcRenderer.invoke('set-settings', settings),
   showWindow: () => ipcRenderer.invoke('show-window'),
   setAutostart: (enabled: boolean) => ipcRenderer.invoke('set-autostart', enabled),
-  getAppVersion: () => process.env.npm_package_version || '4.0.1',
+  getAppVersion: () => process.env.npm_package_version || '4.0.2',
   openExternal: (url: string) => {
     console.log('electronAPI.openExternal called with:', url);
     try {
+      if (!url || typeof url !== 'string') {
+        throw new Error('Invalid URL provided');
+      }
+      
+      if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('mailto:')) {
+        throw new Error('URL must start with http://, https://, or mailto:');
+      }
+      
       shell.openExternal(url);
-      console.log('Successfully opened external URL');
+      console.log('Successfully opened external URL:', url);
     } catch (error) {
       console.error('Error opening external URL:', error);
       throw error;

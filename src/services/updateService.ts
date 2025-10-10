@@ -68,10 +68,10 @@ class UpdateService {
   private getCurrentVersion(): string {
     const version = (typeof window !== 'undefined' && (window as any).electronAPI?.getAppVersion?.()) ||
                    (typeof window !== 'undefined' && (window as any).APP_VERSION) ||
-                   '4.0.1'
+                   '4.0.2'
     
     console.log('Current app version detected:', version);
-    return version || '4.0.1';
+    return version || '4.0.2';
   }
 
   private async fetchLatestRelease(): Promise<any> {
@@ -160,12 +160,31 @@ class UpdateService {
   }
 
   public async openReleasesPage(): Promise<void> {
-    if (typeof window !== 'undefined' && (window as any).electronAPI?.openExternal) {
-      console.log('Opening external URL:', this.GITHUB_RELEASES_URL);
-      (window as any).electronAPI.openExternal(this.GITHUB_RELEASES_URL);
-    } else {
-      console.error('electronAPI.openExternal not available, falling back to window.open');
+    console.log('Attempting to open releases page:', this.GITHUB_RELEASES_URL);
+
+    try {
+      if (typeof window !== 'undefined' && (window as any).electronAPI?.openExternal) {
+        console.log('Using electronAPI.openExternal');
+        (window as any).electronAPI.openExternal(this.GITHUB_RELEASES_URL);
+      }
+    } catch (e) {
+      console.warn('electronAPI.openExternal failed, will try fallbacks', e);
+    }
+
+    try {
+      if (typeof window !== 'undefined' && (window as any).openExternal) {
+        console.log('Using global openExternal function');
+        (window as any).openExternal(this.GITHUB_RELEASES_URL);
+      }
+    } catch (e) {
+      console.warn('global openExternal failed, will try window.open', e);
+    }
+
+    try {
+      console.log('Attempting window.open fallback');
       window.open(this.GITHUB_RELEASES_URL, '_blank', 'noopener,noreferrer');
+    } catch (e) {
+      console.warn('window.open fallback failed', e);
     }
   }
 }
