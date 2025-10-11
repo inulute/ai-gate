@@ -41,9 +41,9 @@
     "electron:preview:dev": "cross-env NODE_ENV=development electron .",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
-    "package-win": "electron-builder --win",
-    "package-mac": "electron-builder --mac",
-    "package-linux": "electron-builder --linux",
+    "package-win": "npx tsc -p tsconfig.electron.json && npx tsc -p tsconfig.preload.json && cross-env NODE_ENV=production ELECTRON=true vite build && electron-builder --win",
+    "package-mac": "npx tsc -p tsconfig.electron.json && npx tsc -p tsconfig.preload.json && cross-env NODE_ENV=production ELECTRON=true vite build && electron-builder --mac",
+    "package-linux": "npx tsc -p tsconfig.electron.json && npx tsc -p tsconfig.preload.json && cross-env NODE_ENV=production ELECTRON=true vite build && electron-builder --linux",
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
@@ -121,10 +121,6 @@
       "entitlementsInherit": "build/entitlements.mac.plist",
       "target": [
         {
-          "target": "dmg",
-          "arch": ["x64", "arm64", "universal"]
-        },
-        {
           "target": "zip",
           "arch": ["x64", "arm64", "universal"]
         }
@@ -154,8 +150,7 @@
     },
     "linux": {
       "target": [
-        "AppImage",
-        "deb"
+        "AppImage"
       ],
       "icon": "./icons/png/favicon.png",
       "category": "Utility",
