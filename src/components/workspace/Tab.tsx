@@ -10,10 +10,11 @@ interface TabProps {
   tool: AITool;
   isActive: boolean;
   onClose: () => void;
+  panelId: number; // The current panel this tab is being displayed in
 }
 
-export const Tab = ({ instance, tool, isActive, onClose }: TabProps) => {
-  const { setActivePanelTab } = useAITools();
+export const Tab = ({ instance, tool, isActive, onClose, panelId }: TabProps) => {
+  const { setActivePanelTab, highlightPanel } = useAITools();
 
   const {
     attributes,
@@ -38,7 +39,16 @@ export const Tab = ({ instance, tool, isActive, onClose }: TabProps) => {
   const handleClick = (e: React.MouseEvent) => {
     // Prevent drag from interfering with click
     e.stopPropagation();
-    setActivePanelTab(instance.panelId, instance.id);
+
+    // Check if this instance belongs to the current panel
+    if (instance.panelId === panelId) {
+      // Instance is in this panel - normal activation
+      setActivePanelTab(panelId, instance.id);
+    } else {
+      // Instance is in a different panel - highlight that panel and focus it there
+      setActivePanelTab(instance.panelId, instance.id);
+      highlightPanel(instance.panelId);
+    }
   };
 
   const handleClose = (e: React.MouseEvent) => {

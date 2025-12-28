@@ -77,6 +77,7 @@ export const TabBar = ({ panelId, instances, activeInstanceId }: TabBarProps) =>
                   tool={tool}
                   isActive={instance.id === activeInstanceId}
                   onClose={() => closeToolInstance(instance.id)}
+                  panelId={panelId}
                 />
               );
             })}

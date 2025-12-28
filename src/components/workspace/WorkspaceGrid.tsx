@@ -13,7 +13,10 @@ export const WorkspaceGrid = () => {
   };
 
   const layoutNumber = parseInt(layout);
-  const panels = Array.from({ length: layoutNumber }, (_, i) => i);
+
+  // ALWAYS render all 3 panels to prevent unmounting/remounting
+  // This preserves webview state when switching layouts
+  const allPanels = [0, 1, 2];
 
   return (
     <div
@@ -23,8 +26,16 @@ export const WorkspaceGrid = () => {
         gridTemplateColumns: layout === '1' ? '1fr' : layout === '2' ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)'
       }}
     >
-      {panels.map((panelId) => (
-        <Panel key={panelId} panelId={panelId} />
+      {allPanels.map((panelId) => (
+        <div
+          key={panelId}
+          className="w-full h-full"
+          style={{
+            display: panelId < layoutNumber ? 'block' : 'none'
+          }}
+        >
+          <Panel panelId={panelId} />
+        </div>
       ))}
     </div>
   );

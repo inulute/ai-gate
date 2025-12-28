@@ -13,6 +13,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
     --primary: 240 5.9% 10%;
+    --primary-rgb: 26, 27, 30;
     --primary-foreground: 0 0% 98%;
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
@@ -26,7 +27,7 @@
     --input: 240 5.9% 90%;
     --ring: 240 10% 3.9%;
     --radius: 0.5rem;
-    
+
     /* Animation Variables */
     --transition-fast: 150ms;
     --transition-normal: 300ms;
@@ -39,28 +40,29 @@
   .dark {
     --background: 0 0% 8%; /* Darker background */
     --foreground: 0 0% 98%;
-    
+
     --card: 0 0% 11%; /* Darker card background */
     --card-foreground: 0 0% 98%;
-    
+
     --popover: 0 0% 13%; /* Darker popover */
     --popover-foreground: 0 0% 98%;
-    
+
     --primary: 0 0% 98%;
+    --primary-rgb: 250, 250, 250;
     --primary-foreground: 240 5.9% 10%;
-    
+
     --secondary: 0 0% 15%; /* Darker secondary */
     --secondary-foreground: 0 0% 98%;
-    
+
     --muted: 0 0% 15%;
     --muted-foreground: 240 5% 84.9%;
-    
+
     --accent: 0 0% 17%; /* Darker accent */
     --accent-foreground: 0 0% 98%;
-    
+
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    
+
     --border: 0 0% 20%; /* Darker border */
     --input: 0 0% 20%;
     --ring: 240 4.9% 83.9%;
@@ -290,6 +292,30 @@ button:active {
   to { opacity: 1; }
 }
 
+@keyframes premiumGlow {
+  0% {
+    box-shadow:
+      0 0 20px rgba(var(--primary-rgb), 0.3),
+      0 0 40px rgba(var(--primary-rgb), 0.2),
+      inset 0 0 20px rgba(var(--primary-rgb), 0.1);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow:
+      0 0 30px rgba(var(--primary-rgb), 0.5),
+      0 0 60px rgba(var(--primary-rgb), 0.3),
+      inset 0 0 30px rgba(var(--primary-rgb), 0.15);
+    transform: scale(1.005);
+  }
+  100% {
+    box-shadow:
+      0 0 20px rgba(var(--primary-rgb), 0.3),
+      0 0 40px rgba(var(--primary-rgb), 0.2),
+      inset 0 0 20px rgba(var(--primary-rgb), 0.1);
+    transform: scale(1);
+  }
+}
+
 /* Animation Classes */
 .pulse {
   animation: pulse 2s infinite;
@@ -297,6 +323,10 @@ button:active {
 
 .fade-in {
   animation: fadeIn var(--transition-normal) ease-in;
+}
+
+.premium-glow {
+  animation: premiumGlow 2s ease-in-out;
 }
 
 /* Fix for sticky headers */

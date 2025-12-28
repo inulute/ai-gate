@@ -214,34 +214,18 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
     if (!createNewInstance) {
       const existingInstance = toolInstances.find(instance => instance.toolId === tool.id);
       if (existingInstance) {
-        const currentLayoutNumber = parseInt(layout);
+        // Focus the instance and highlight the panel (regardless of visibility)
+        // In synced tabs mode, the tab will be visible in all panels anyway
+        focusInstance(existingInstance.id);
+        setActivePanelTab(existingInstance.panelId, existingInstance.id);
+        highlightPanel(existingInstance.panelId);
 
-        // Check if the instance's panel is currently visible in the layout
-        if (existingInstance.panelId < currentLayoutNumber) {
-          // Panel is visible - focus the instance and highlight the panel
-          focusInstance(existingInstance.id);
-          setActivePanelTab(existingInstance.panelId, existingInstance.id);
-          highlightPanel(existingInstance.panelId);
-
-          toast({
-            title: "Already Opened",
-            description: `${tool.name} is already open in panel ${existingInstance.panelId + 1}.`,
-            duration: 2000
-          });
-          return;
-        } else {
-          // Panel is not visible (e.g., instance in Panel 1 or 2, but layout is single panel)
-          // Move instance to Panel 0 (visible panel)
-          moveInstanceToPanel(existingInstance.id, 0);
-          setActivePanelTab(0, existingInstance.id);
-
-          toast({
-            title: "Tool Focused",
-            description: `${tool.name} moved to visible panel.`,
-            duration: 2000
-          });
-          return;
-        }
+        toast({
+          title: "Already Opened",
+          description: `${tool.name} is already open in panel ${existingInstance.panelId + 1}.`,
+          duration: 2000
+        });
+        return;
       }
     }
 
@@ -578,33 +562,18 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
     const existingInstance = toolInstances.find(inst => inst.toolId === tool.id);
 
     if (existingInstance) {
-      const layoutNumber = parseInt(layout);
+      // Focus and highlight (regardless of panel visibility)
+      // In synced tabs mode, the tab will be visible anyway
+      focusInstance(existingInstance.id);
+      setActivePanelTab(existingInstance.panelId, existingInstance.id);
+      highlightPanel(existingInstance.panelId);
 
-      // Check if the instance's panel is currently visible
-      if (existingInstance.panelId < layoutNumber) {
-        // Panel is visible - focus and highlight
-        focusInstance(existingInstance.id);
-        setActivePanelTab(existingInstance.panelId, existingInstance.id);
-        highlightPanel(existingInstance.panelId);
-
-        toast({
-          title: "Already Opened",
-          description: `${tool.name} is already open in panel ${existingInstance.panelId + 1}.`,
-          duration: 2000
-        });
-        return;
-      } else {
-        // Panel is not visible - move to Panel 0
-        moveInstanceToPanel(existingInstance.id, 0);
-        setActivePanelTab(0, existingInstance.id);
-
-        toast({
-          title: "Tool Focused",
-          description: `${tool.name} moved to visible panel.`,
-          duration: 2000
-        });
-        return;
-      }
+      toast({
+        title: "Already Opened",
+        description: `${tool.name} is already open in panel ${existingInstance.panelId + 1}.`,
+        duration: 2000
+      });
+      return;
     }
 
     // Smart panel selection: find empty panel first, then least populated
