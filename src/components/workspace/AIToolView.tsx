@@ -22,21 +22,6 @@ interface AIToolViewProps {
   isVisible: boolean;
 }
 
-const AUTH_DOMAINS = [
-  'accounts.google.com',
-  'login.microsoftonline.com',
-  'github.com/login',
-  'api.twitter.com/oauth',
-  'auth',
-  'login',
-  'signin',
-  'oauth'
-];
-
-const KEEP_IN_APP_URL_PARTS = [
-  'google.com/sorry'
-];
-
 export const AIToolView = ({ tool, instance, isVisible }: AIToolViewProps) => {
   const webviewRef = useRef<HTMLWebViewElement>(null);
   const hasSetSrcRef = useRef(false);
@@ -83,18 +68,6 @@ export const AIToolView = ({ tool, instance, isVisible }: AIToolViewProps) => {
     }
   };
 
-  const isKeepInApp = (url: string) => {
-    try {
-      const urlObj = new URL(url);
-      if (KEEP_IN_APP_URL_PARTS.some(part => url.includes(part))) return true;
-      if (AUTH_DOMAINS.some(domain => urlObj.hostname.includes(domain) || urlObj.pathname.includes(domain))) return true;
-      if (urlObj.hostname.endsWith('google.com') && urlObj.pathname.startsWith('/sorry')) return true;
-      return false;
-    } catch (e) {
-      return false;
-    }
-  };
-
   // Set up event listeners
   useEffect(() => {
     const webview = webviewRef.current;
@@ -111,42 +84,12 @@ export const AIToolView = ({ tool, instance, isVisible }: AIToolViewProps) => {
     };
     
     const handleNewWindow = (e: any) => {
-      const url = e.url;
-      if (!url) return;
-      
-      if (isKeepInApp(url)) {
-        e.preventDefault();
-        webview.src = url;
-      } else if (url.startsWith('http:') || url.startsWith('https:')) {
-        e.preventDefault();
-        window.open(url, '_blank');
-      }
+      // All window.open() calls are handled by main process setWindowOpenHandler
+      // No need to handle here
     };
     
     const handleDomReady = () => {
-      webview.executeJavaScript(`
-        document.addEventListener('click', (event) => {
-          const anchor = event.target.closest('a');
-          if (!anchor || !anchor.href) return;
-          
-          const url = anchor.href;
-          const currentHost = window.location.hostname;
-          const targetHost = new URL(url).hostname;
-          
-          const isAuthURL = ${JSON.stringify(AUTH_DOMAINS)}.some(domain => url.includes(domain));
-          const keepInAppParts = ${JSON.stringify(KEEP_IN_APP_URL_PARTS)};
-          const isKeepInAppUrl = keepInAppParts.some(part => url.includes(part))
-            || (targetHost.endsWith('google.com') && new URL(url).pathname.startsWith('/sorry'));
-          const isSameDomain = targetHost === currentHost || targetHost.endsWith('.' + currentHost) || currentHost.endsWith('.' + targetHost);
-          
-          if (!isAuthURL && !isKeepInAppUrl && !isSameDomain && (url.startsWith('http:') || url.startsWith('https:'))) {
-            event.preventDefault();
-            window.open(url, '_blank');
-            return false;
-          }
-        });
-      `);
-
+      // Inject custom scrollbar CSS
       const scrollbarCss = `
         ::-webkit-scrollbar { width: 10px; height: 10px; }
         ::-webkit-scrollbar-track { background: transparent; }

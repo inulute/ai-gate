@@ -74,22 +74,21 @@ export const SettingsPanel = ({ isCollapsed = false }: SettingsPanelProps) => {
 
   // Apply changes function
   const applyChanges = () => {
+    // Update all settings through the context
     updateSettings({
       theme: tempSettings.theme,
       defaultLayout: tempSettings.defaultLayout,
       defaultTools: tempSettings.defaultTools,
       autoLayout: tempSettings.autoLayout,
     });
-    
+
     toast({
       title: "Settings Updated",
-      description: "Your preferences have been saved. They will apply on next app start.",
+      description: "Your preferences have been saved successfully.",
       duration: 3000
     });
-    
+
     setOpen(false);
-    
-    localStorage.setItem('default-layout', tempSettings.defaultLayout);
   };
 
   return (
@@ -143,10 +142,13 @@ export const SettingsPanel = ({ isCollapsed = false }: SettingsPanelProps) => {
                 <h3 className="text-sm font-medium">Theme</h3>
                 <RadioGroup
                   value={tempSettings.theme}
-                  onValueChange={(value) => setTempSettings({
-                    ...tempSettings, 
-                    theme: value as 'light' | 'dark' | 'system'
-                  })}
+                  onValueChange={(value) => {
+                    const newTheme = value as 'light' | 'dark' | 'system';
+                    setTempSettings({
+                      ...tempSettings,
+                      theme: newTheme
+                    });
+                  }}
                   className="flex items-center space-x-4"
                 >
                   <div className="flex items-center space-x-2">

@@ -41,44 +41,6 @@ global.isQuiting = false;
 const launchArgs = process.argv.slice(1);
 const launchedHidden = launchArgs.includes('--hidden');
 
-// Authentication-related domains to keep in the app
-const AUTH_DOMAINS = [
-  'accounts.google.com',
-  'login.microsoftonline.com',
-  'github.com/login',
-  'api.twitter.com/oauth',
-  'auth', // Generic auth paths
-  'login',
-  'signin',
-  'sign_in',
-  'oauth'
-];
-
-// Additional URL substrings that should always stay in-app (e.g., verification flows)
-const KEEP_IN_APP_URL_PARTS = [
-  'google.com/sorry'
-];
-
-// Helper function to check if a URL is authentication-related
-function isAuthRelated(url: string): boolean {
-  try {
-    return AUTH_DOMAINS.some(domain => url.includes(domain));
-  } catch (e) {
-    return false;
-  }
-}
-
-function isKeepInApp(url: string): boolean {
-  try {
-    if (KEEP_IN_APP_URL_PARTS.some(part => url.includes(part))) return true;
-    const u = new URL(url);
-    if (u.hostname.endsWith('google.com') && u.pathname.startsWith('/sorry')) return true;
-    return isAuthRelated(url);
-  } catch {
-    return false;
-  }
-}
-
 function createWindow() {
   // Create the browser window.
   mainWindow = new BrowserWindow({
@@ -152,20 +114,10 @@ function createWindow() {
     console.error('webContents crashed');
   });
 
-  // Handle external links - but keep auth/verification related ones in the app
+  // Handle external links - open all in external browser
   mainWindow.webContents.setWindowOpenHandler(({ url }: { url: string }) => {
-    // Keep selected URLs within the app
-    if (isKeepInApp(url)) {
-      return { action: 'allow' };
-    }
-    
-    // Open external URLs in default browser
-    if (url.startsWith('http:') || url.startsWith('https:')) {
-      shell.openExternal(url);
-      return { action: 'deny' };
-    }
-    
-    return { action: 'allow' };
+    shell.openExternal(url);
+    return { action: 'deny' };
   });
 
   // Configure session headers only for our app, do not override external sites (e.g., Google auth)
@@ -417,36 +369,12 @@ app.whenReady().then(() => {
         event.preventDefault();
       }
     });
+
     // For all web contents (including webviews)
+    // Open all window.open() calls in external browser
     contents.setWindowOpenHandler(({ url }: { url: string }) => {
-      // Keep selected URLs within the app
-      if (isKeepInApp(url)) {
-        return { action: 'allow' };
-      }
-      
-      // Open non-auth external links in default browser
-      if (url.startsWith('http:') || url.startsWith('https:')) {
-        shell.openExternal(url);
-        return { action: 'deny' };
-      }
-      return { action: 'allow' };
-    });
-
-    // Handle navigation events
-    contents.on('will-navigate', (event: any, url: string) => {
-      const isMainWindow = BrowserWindow.fromWebContents(contents) !== null;
-
-      // Always allow in-app/verification/auth flows
-      if (isKeepInApp(url)) {
-        return;
-      }
-
-      // Only redirect to external browser for the main window's top-level navigations
-      if (isMainWindow && (url.startsWith('http:') || url.startsWith('https:'))) {
-        event.preventDefault();
-        shell.openExternal(url);
-      }
-      // For webviews (not main window), allow navigation to proceed in place
+      shell.openExternal(url);
+      return { action: 'deny' };
     });
   });
 });

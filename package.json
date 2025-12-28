@@ -1,7 +1,7 @@
 {
   "name": "ai-gate",
   "productName": "AI Gate",
-  "version": "4.0.2",
+  "version": "4.0.0",
   "description": "Access all your AI tools seamlessly in one unified desktop application",
   "main": "dist-electron/main.js",
   "author": {
@@ -81,6 +81,7 @@
     "@types/react-dom": "^19.0.3",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
+    "baseline-browser-mapping": "^2.9.11",
     "concurrently": "^9.1.2",
     "cross-env": "^7.0.3",
     "electron": "^34.2.0",
@@ -122,11 +123,19 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["x64", "arm64", "universal"]
+          "arch": [
+            "x64",
+            "arm64",
+            "universal"
+          ]
         },
         {
           "target": "zip",
-          "arch": ["x64", "arm64", "universal"]
+          "arch": [
+            "x64",
+            "arm64",
+            "universal"
+          ]
         }
       ]
     },
@@ -134,7 +143,10 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         }
       ],
       "icon": "./icons/win/favicon.ico",
