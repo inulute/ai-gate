@@ -16,10 +16,13 @@ export interface ToolInstance {
   id: string;
   toolId: string;
   title: string;
+  customTitle?: string; // User-defined tab name
   state: ToolState;
   lastActive: Date;
   isPinned: boolean;
-  position: number;
+  position: number; // Global position (legacy, for backwards compatibility)
+  panelId: number; // Which panel (0, 1, or 2)
+  positionInPanel: number; // Tab order within the panel
 }
 
 export interface ToolState {

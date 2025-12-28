@@ -53,6 +53,7 @@ export const SettingsPanel = ({ isCollapsed = false }: SettingsPanelProps) => {
     defaultLayout: settings.defaultLayout,
     defaultTools: settings.defaultTools || [],
     autoLayout: settings.autoLayout ?? true,
+    syncedTabs: settings.syncedTabs ?? true,
   });
   
   useEffect(() => {
@@ -61,6 +62,7 @@ export const SettingsPanel = ({ isCollapsed = false }: SettingsPanelProps) => {
       defaultLayout: settings.defaultLayout,
       defaultTools: settings.defaultTools || [],
       autoLayout: settings.autoLayout ?? true,
+      syncedTabs: settings.syncedTabs ?? true,
     });
   }, [settings, open]);
   
@@ -80,6 +82,7 @@ export const SettingsPanel = ({ isCollapsed = false }: SettingsPanelProps) => {
       defaultLayout: tempSettings.defaultLayout,
       defaultTools: tempSettings.defaultTools,
       autoLayout: tempSettings.autoLayout,
+      syncedTabs: tempSettings.syncedTabs,
     });
 
     toast({
@@ -191,6 +194,26 @@ export const SettingsPanel = ({ isCollapsed = false }: SettingsPanelProps) => {
                     id="autoLayout"
                     checked={tempSettings.autoLayout}
                     onCheckedChange={(checked) => setTempSettings(prev => ({ ...prev, autoLayout: checked }))}
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Synced Tabs Toggle */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium">Tab Bar Mode</h3>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label htmlFor="syncedTabs">Sync tab bar across all panels</Label>
+                    <p className="text-xs text-muted-foreground">
+                      When enabled, all panels show the same tabs. When disabled, each panel has its own independent tabs.
+                    </p>
+                  </div>
+                  <Switch
+                    id="syncedTabs"
+                    checked={tempSettings.syncedTabs}
+                    onCheckedChange={(checked) => setTempSettings(prev => ({ ...prev, syncedTabs: checked }))}
                   />
                 </div>
               </div>

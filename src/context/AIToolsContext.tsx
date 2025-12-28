@@ -9,6 +9,8 @@ interface AIToolsContextType {
   tools: AITool[];
   toolInstances: ToolInstance[];
   layout: LayoutType;
+  activePanelTabs: Record<number, string>; // Track active tab per panel
+  highlightedPanelId: number | null; // Track which panel should be highlighted
   addTool: (tool: AITool) => void;
   updateTool: (tool: AITool) => void;
   removeTool: (id: string) => void;
@@ -25,6 +27,16 @@ interface AIToolsContextType {
   getInstanceById: (instanceId: string) => ToolInstance | undefined;
   focusInstance: (instanceId: string) => void;
   getActiveInstance: () => ToolInstance | undefined;
+  // New panel management methods
+  moveInstanceToPanel: (instanceId: string, targetPanelId: number, position?: number) => void;
+  reorderTabInPanel: (panelId: number, fromIndex: number, toIndex: number) => void;
+  setActivePanelTab: (panelId: number, instanceId: string) => void;
+  duplicateInstance: (instanceId: string, targetPanelId?: number) => void;
+  renameInstance: (instanceId: string, customTitle: string) => void;
+  createInstanceInPanel: (tool: AITool, targetPanelId: number) => void;
+  getInstancesByPanel: (panelId: number) => ToolInstance[];
+  getActivePanelInstance: (panelId: number) => ToolInstance | undefined;
+  highlightPanel: (panelId: number) => void;
 }
 
 const AIToolsContext = createContext<AIToolsContextType | undefined>(undefined);
@@ -35,9 +47,11 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
   const [tools, setTools] = useLocalStorage<AITool[]>('ai-tools', []);
   const [toolInstances, setToolInstances] = useLocalStorage<ToolInstance[]>('tool-instances', []);
   const [recentlyClosed, setRecentlyClosed] = useState<ToolInstance[]>([]);
-  
+  const [activePanelTabs, setActivePanelTabs] = useLocalStorage<Record<number, string>>('active-panel-tabs', {});
+  const [highlightedPanelId, setHighlightedPanelId] = useState<number | null>(null);
+
   const [layout, setLayoutState] = useLocalStorage<LayoutType>(
-    'layout', 
+    'layout',
     (settings.defaultLayout || '2') as LayoutType
   );
 
@@ -55,6 +69,39 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
       setTools(defaults);
     }
   }, []);
+
+  // Migration: Assign panelId to existing instances
+  useEffect(() => {
+    const layoutNumber = parseInt(layout);
+    let needsMigration = false;
+
+    const migratedInstances = toolInstances.map((instance, index) => {
+      if (instance.panelId === undefined || instance.positionInPanel === undefined) {
+        needsMigration = true;
+        return {
+          ...instance,
+          panelId: index % layoutNumber,
+          positionInPanel: Math.floor(index / layoutNumber),
+        };
+      }
+      return instance;
+    });
+
+    if (needsMigration) {
+      console.log('Migrating instances to panel system');
+      setToolInstances(migratedInstances);
+
+      // Set first instance of each panel as active
+      const newActiveTabs: Record<number, string> = {};
+      for (let i = 0; i < layoutNumber; i++) {
+        const panelInstances = migratedInstances.filter(inst => inst.panelId === i);
+        if (panelInstances.length > 0) {
+          newActiveTabs[i] = panelInstances[0].id;
+        }
+      }
+      setActivePanelTabs(newActiveTabs);
+    }
+  }, [layout, toolInstances.length]);
 
   useEffect(() => {
     const hasInitialized = sessionStorage.getItem('app-initialized') === 'true';
@@ -87,9 +134,18 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
         },
         lastActive: new Date(),
         isPinned: false,
-        position: index
+        position: index,
+        panelId: index, // Each tool gets its own panel initially
+        positionInPanel: 0 // First tab in that panel
       }));
       setToolInstances(instances);
+
+      // Set each instance as active in its panel
+      const initialActiveTabs: Record<number, string> = {};
+      instances.forEach((instance, index) => {
+        initialActiveTabs[index] = instance.id;
+      });
+      setActivePanelTabs(initialActiveTabs);
     }
 
     sessionStorage.setItem('app-initialized', 'true');
@@ -158,8 +214,34 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
     if (!createNewInstance) {
       const existingInstance = toolInstances.find(instance => instance.toolId === tool.id);
       if (existingInstance) {
-        focusInstance(existingInstance.id);
-        return;
+        const currentLayoutNumber = parseInt(layout);
+
+        // Check if the instance's panel is currently visible in the layout
+        if (existingInstance.panelId < currentLayoutNumber) {
+          // Panel is visible - focus the instance and highlight the panel
+          focusInstance(existingInstance.id);
+          setActivePanelTab(existingInstance.panelId, existingInstance.id);
+          highlightPanel(existingInstance.panelId);
+
+          toast({
+            title: "Already Opened",
+            description: `${tool.name} is already open in panel ${existingInstance.panelId + 1}.`,
+            duration: 2000
+          });
+          return;
+        } else {
+          // Panel is not visible (e.g., instance in Panel 1 or 2, but layout is single panel)
+          // Move instance to Panel 0 (visible panel)
+          moveInstanceToPanel(existingInstance.id, 0);
+          setActivePanelTab(0, existingInstance.id);
+
+          toast({
+            title: "Tool Focused",
+            description: `${tool.name} moved to visible panel.`,
+            duration: 2000
+          });
+          return;
+        }
       }
     }
 
@@ -178,25 +260,68 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
       }
     }
 
+    // Find target panel
+    let targetPanelId = 0;
+    let positionInPanel = 0;
+    const layoutNumber = parseInt(shouldExpandLayout ? targetLayout : layout);
+
+    if (createNewInstance) {
+      // Ctrl+Click: add to same panel as existing instance of this tool
+      const existingInstance = toolInstances.find(instance => instance.toolId === tool.id);
+      if (existingInstance) {
+        targetPanelId = existingInstance.panelId;
+        const panelInstances = toolInstances.filter(inst => inst.panelId === targetPanelId);
+        positionInPanel = panelInstances.length;
+      }
+    } else {
+      // Regular click: find first empty panel, or least populated panel
+      let foundEmptyPanel = false;
+      for (let i = 0; i < layoutNumber; i++) {
+        const panelInstances = toolInstances.filter(inst => inst.panelId === i);
+        if (panelInstances.length === 0) {
+          targetPanelId = i;
+          positionInPanel = 0;
+          foundEmptyPanel = true;
+          break;
+        }
+      }
+
+      // If no empty panel found, use the panel with least instances
+      if (!foundEmptyPanel) {
+        let minCount = Infinity;
+        for (let i = 0; i < layoutNumber; i++) {
+          const panelInstances = toolInstances.filter(inst => inst.panelId === i);
+          if (panelInstances.length < minCount) {
+            minCount = panelInstances.length;
+            targetPanelId = i;
+            positionInPanel = panelInstances.length;
+          }
+        }
+      }
+    }
+
     const newInstance: ToolInstance = {
       id: `${tool.id}-${Date.now()}`,
       toolId: tool.id,
       title: tool.name,
-      state: { 
+      state: {
         lastUrl: tool.url,
         isLoading: true,
         isMinimized: false
       },
       lastActive: new Date(),
       isPinned: false,
-      position: toolInstances.length
+      position: toolInstances.length,
+      panelId: targetPanelId,
+      positionInPanel: positionInPanel
     };
 
     if (shouldExpandLayout) {
       setLayoutState(targetLayout);
     }
-    
+
     setToolInstances(current => [...current, newInstance]);
+    setActivePanelTab(targetPanelId, newInstance.id);
 
     toast({
       title: "Tool Opened",
@@ -361,10 +486,211 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [toolInstances, recentlyClosed]);
 
+  // New panel management methods
+  const moveInstanceToPanel = (instanceId: string, targetPanelId: number, position?: number) => {
+    setToolInstances(current => {
+      const instance = current.find(inst => inst.id === instanceId);
+      if (!instance) return current;
+
+      const targetPanelInstances = current.filter(inst => inst.panelId === targetPanelId);
+      const newPosition = position ?? targetPanelInstances.length;
+
+      return current.map(inst => {
+        if (inst.id === instanceId) {
+          return { ...inst, panelId: targetPanelId, positionInPanel: newPosition };
+        }
+        // Reorder other instances in target panel
+        if (inst.panelId === targetPanelId && inst.positionInPanel >= newPosition) {
+          return { ...inst, positionInPanel: inst.positionInPanel + 1 };
+        }
+        return inst;
+      });
+    });
+
+    setActivePanelTab(targetPanelId, instanceId);
+  };
+
+  const reorderTabInPanel = (panelId: number, fromIndex: number, toIndex: number) => {
+    setToolInstances(current => {
+      const panelInstances = current
+        .filter(inst => inst.panelId === panelId)
+        .sort((a, b) => a.positionInPanel - b.positionInPanel);
+
+      const [movedInstance] = panelInstances.splice(fromIndex, 1);
+      panelInstances.splice(toIndex, 0, movedInstance);
+
+      const updatedPositions = new Map(
+        panelInstances.map((inst, index) => [inst.id, index])
+      );
+
+      return current.map(inst => {
+        if (inst.panelId === panelId) {
+          const newPos = updatedPositions.get(inst.id);
+          return newPos !== undefined ? { ...inst, positionInPanel: newPos } : inst;
+        }
+        return inst;
+      });
+    });
+  };
+
+  const setActivePanelTab = (panelId: number, instanceId: string) => {
+    setActivePanelTabs(current => ({
+      ...current,
+      [panelId]: instanceId
+    }));
+  };
+
+  const duplicateInstance = (instanceId: string, targetPanelId?: number) => {
+    const instance = toolInstances.find(inst => inst.id === instanceId);
+    if (!instance) return;
+
+    const tool = getToolById(instance.toolId);
+    if (!tool) return;
+
+    const panelId = targetPanelId ?? instance.panelId;
+    const panelInstances = toolInstances.filter(inst => inst.panelId === panelId);
+
+    const newInstance: ToolInstance = {
+      ...instance,
+      id: `${instance.toolId}-${Date.now()}`,
+      panelId,
+      positionInPanel: panelInstances.length,
+      position: toolInstances.length,
+      lastActive: new Date(),
+    };
+
+    setToolInstances(current => [...current, newInstance]);
+    setActivePanelTab(panelId, newInstance.id);
+
+    toast({
+      title: "Tab Duplicated",
+      description: `Created new ${tool.name} tab.`,
+      duration: 1500
+    });
+  };
+
+  const renameInstance = (instanceId: string, customTitle: string) => {
+    updateToolInstance(instanceId, { customTitle });
+  };
+
+  const createInstanceInPanel = (tool: AITool, requestedPanelId: number) => {
+    // Check if an instance of this tool already exists
+    const existingInstance = toolInstances.find(inst => inst.toolId === tool.id);
+
+    if (existingInstance) {
+      const layoutNumber = parseInt(layout);
+
+      // Check if the instance's panel is currently visible
+      if (existingInstance.panelId < layoutNumber) {
+        // Panel is visible - focus and highlight
+        focusInstance(existingInstance.id);
+        setActivePanelTab(existingInstance.panelId, existingInstance.id);
+        highlightPanel(existingInstance.panelId);
+
+        toast({
+          title: "Already Opened",
+          description: `${tool.name} is already open in panel ${existingInstance.panelId + 1}.`,
+          duration: 2000
+        });
+        return;
+      } else {
+        // Panel is not visible - move to Panel 0
+        moveInstanceToPanel(existingInstance.id, 0);
+        setActivePanelTab(0, existingInstance.id);
+
+        toast({
+          title: "Tool Focused",
+          description: `${tool.name} moved to visible panel.`,
+          duration: 2000
+        });
+        return;
+      }
+    }
+
+    // Smart panel selection: find empty panel first, then least populated
+    const layoutNumber = parseInt(layout);
+    let targetPanelId = requestedPanelId;
+
+    // Only apply smart distribution in multi-panel mode (2 or 3 panels)
+    if (layoutNumber > 1) {
+      let foundEmptyPanel = false;
+
+      // First, try to find an empty panel
+      for (let i = 0; i < layoutNumber; i++) {
+        const panelInstances = toolInstances.filter(inst => inst.panelId === i);
+        if (panelInstances.length === 0) {
+          targetPanelId = i;
+          foundEmptyPanel = true;
+          break;
+        }
+      }
+
+      // If no empty panel, use the panel with fewest instances
+      if (!foundEmptyPanel) {
+        let minCount = Infinity;
+        for (let i = 0; i < layoutNumber; i++) {
+          const panelInstances = toolInstances.filter(inst => inst.panelId === i);
+          if (panelInstances.length < minCount) {
+            minCount = panelInstances.length;
+            targetPanelId = i;
+          }
+        }
+      }
+    }
+
+    const panelInstances = toolInstances.filter(inst => inst.panelId === targetPanelId);
+
+    const newInstance: ToolInstance = {
+      id: `${tool.id}-${Date.now()}`,
+      toolId: tool.id,
+      title: tool.name,
+      state: {
+        lastUrl: tool.url,
+        isLoading: true,
+        isMinimized: false
+      },
+      lastActive: new Date(),
+      isPinned: false,
+      position: toolInstances.length,
+      panelId: targetPanelId,
+      positionInPanel: panelInstances.length
+    };
+
+    setToolInstances(current => [...current, newInstance]);
+    setActivePanelTab(targetPanelId, newInstance.id);
+
+    toast({
+      title: "Tool Opened",
+      description: `${tool.name} opened in panel ${targetPanelId + 1}.`,
+      duration: 1500
+    });
+  };
+
+  const getInstancesByPanel = (panelId: number): ToolInstance[] => {
+    return toolInstances
+      .filter(inst => inst.panelId === panelId)
+      .sort((a, b) => a.positionInPanel - b.positionInPanel);
+  };
+
+  const getActivePanelInstance = (panelId: number): ToolInstance | undefined => {
+    const activeId = activePanelTabs[panelId];
+    return activeId ? toolInstances.find(inst => inst.id === activeId) : undefined;
+  };
+
+  const highlightPanel = (panelId: number) => {
+    setHighlightedPanelId(panelId);
+    // Auto-clear the highlight after 2 seconds
+    setTimeout(() => {
+      setHighlightedPanelId(null);
+    }, 2000);
+  };
+
   const contextValue: AIToolsContextType = useMemo(() => ({
     tools,
     toolInstances,
     layout,
+    activePanelTabs,
+    highlightedPanelId,
     addTool,
     updateTool,
     removeTool,
@@ -381,10 +707,22 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
     getInstanceById,
     focusInstance,
     getActiveInstance,
+    // New panel methods
+    moveInstanceToPanel,
+    reorderTabInPanel,
+    setActivePanelTab,
+    duplicateInstance,
+    renameInstance,
+    createInstanceInPanel,
+    getInstancesByPanel,
+    getActivePanelInstance,
+    highlightPanel,
   }), [
     tools,
     toolInstances,
     layout,
+    activePanelTabs,
+    highlightedPanelId,
   ]);
 
   return (

@@ -26,10 +26,11 @@ export const AIToolView = ({ tool, instance, isVisible }: AIToolViewProps) => {
   const webviewRef = useRef<HTMLWebViewElement>(null);
   const hasSetSrcRef = useRef(false);
   const favicon = useFavicon(tool.url, tool.icon);
-  const { 
-    closeToolInstance, 
-    updateToolState, 
-    pinToolInstance, 
+  const {
+    closeToolInstance,
+    updateToolState,
+    updateToolInstance,
+    pinToolInstance,
     unpinToolInstance
   } = useAITools();
   const [isLoading, setIsLoading] = useState(false);
@@ -83,11 +84,24 @@ export const AIToolView = ({ tool, instance, isVisible }: AIToolViewProps) => {
       updateToolState(instance.id, { isLoading: false });
     };
     
-    const handleNewWindow = (e: any) => {
+    const handleNewWindow = () => {
       // All window.open() calls are handled by main process setWindowOpenHandler
       // No need to handle here
     };
     
+    const updatePageTitle = () => {
+      try {
+        const wv: any = webview;
+        const pageTitle = wv.getTitle?.() || '';
+        if (pageTitle && pageTitle !== tool.name) {
+          // Update instance title if it's different from the default tool name
+          updateToolInstance(instance.id, { customTitle: pageTitle });
+        }
+      } catch (error) {
+        console.error('Error getting page title:', error);
+      }
+    };
+
     const handleDomReady = () => {
       // Inject custom scrollbar CSS
       const scrollbarCss = `
@@ -97,7 +111,7 @@ export const AIToolView = ({ tool, instance, isVisible }: AIToolViewProps) => {
         ::-webkit-scrollbar-thumb:hover { background-color: rgba(120,120,120,0.7); }
       `;
       (webview as any).insertCSS(scrollbarCss);
-      
+
       setIsLoading(false);
       setIsReady(true);
       try {
@@ -106,8 +120,11 @@ export const AIToolView = ({ tool, instance, isVisible }: AIToolViewProps) => {
         setCanFwd(typeof wv.canGoForward === 'function' ? wv.canGoForward() : false);
       } catch {}
       updateToolState(instance.id, { isLoading: false, lastUrl: webview.src });
+
+      // Update page title after DOM is ready
+      setTimeout(() => updatePageTitle(), 500);
     };
-    
+
     const handleNavigate = () => {
       try {
         const wv: any = webview;
@@ -115,6 +132,16 @@ export const AIToolView = ({ tool, instance, isVisible }: AIToolViewProps) => {
         setCanFwd(typeof wv.canGoForward === 'function' ? wv.canGoForward() : false);
         updateToolState(instance.id, { lastUrl: webview.src });
       } catch {}
+
+      // Update page title after navigation
+      setTimeout(() => updatePageTitle(), 500);
+    };
+
+    const handlePageTitleUpdated = (e: any) => {
+      const pageTitle = e.title || '';
+      if (pageTitle && pageTitle !== tool.name) {
+        updateToolInstance(instance.id, { customTitle: pageTitle });
+      }
     };
     
     webview.addEventListener('did-start-loading', handleStartLoad as any);
@@ -123,7 +150,8 @@ export const AIToolView = ({ tool, instance, isVisible }: AIToolViewProps) => {
     webview.addEventListener('dom-ready', handleDomReady as any);
     webview.addEventListener('did-navigate', handleNavigate as any);
     webview.addEventListener('did-navigate-in-page', handleNavigate as any);
-    
+    webview.addEventListener('page-title-updated', handlePageTitleUpdated as any);
+
     return () => {
       webview.removeEventListener('did-start-loading', handleStartLoad as any);
       webview.removeEventListener('did-stop-loading', handleStopLoad as any);
@@ -131,6 +159,7 @@ export const AIToolView = ({ tool, instance, isVisible }: AIToolViewProps) => {
       webview.removeEventListener('dom-ready', handleDomReady as any);
       webview.removeEventListener('did-navigate', handleNavigate as any);
       webview.removeEventListener('did-navigate-in-page', handleNavigate as any);
+      webview.removeEventListener('page-title-updated', handlePageTitleUpdated as any);
     };
   }, [tool.type]);
 
