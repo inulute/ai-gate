@@ -2,11 +2,14 @@ import path from 'path'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-const isElectron = process.env.ELECTRON == 'true'
-
 export default defineConfig({
   plugins: [react()],
-  base: isElectron ? './' : '/',
+  // Always use relative paths so assets load correctly in both:
+  // - Electron (file:// protocol — absolute paths resolve to filesystem root)
+  // - Web browsers (works fine with relative paths from any server root)
+  // Previously this was conditional on ELECTRON=true, which caused blank screens
+  // when building without that env var (e.g., AUR/distro package builds).
+  base: './',
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

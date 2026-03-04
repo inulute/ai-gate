@@ -166,10 +166,22 @@ function createWindow() {
 
 function createTray() {
   // Resolve icon from packaged app resources
+  // Try platform-specific icons first, then fall back to PNG (works everywhere)
+  const appPath = app.getAppPath();
+  const resourcesPath = process.resourcesPath || '';
+
   const candidatePaths = [
-    path.join(app.getAppPath(), 'icons/win/favicon.ico'),
-    path.join(process.resourcesPath || '', 'icons/win/favicon.ico'),
-    path.join(__dirname, '../icons/win/favicon.ico')
+    // Windows .ico
+    path.join(appPath, 'icons/win/favicon.ico'),
+    path.join(resourcesPath, 'icons/win/favicon.ico'),
+    path.join(__dirname, '../icons/win/favicon.ico'),
+    // PNG (works on all platforms including Linux)
+    path.join(appPath, 'icons/png/favicon.png'),
+    path.join(resourcesPath, 'icons/png/favicon.png'),
+    path.join(__dirname, '../icons/png/favicon.png'),
+    // Common Linux system install paths
+    '/usr/share/pixmaps/ai-gate.png',
+    '/usr/share/icons/hicolor/256x256/apps/ai-gate.png',
   ];
 
   let icon = null;
@@ -185,18 +197,21 @@ function createTray() {
       }
     } catch {}
   }
-  
-  // If no icon found, create a simple one
+
+  // If no icon found, create a minimal 16x16 PNG programmatically
+  // (nativeImage.createFromBuffer does NOT support SVG — only PNG/JPEG/BMP)
   if (!icon) {
     console.log('Creating fallback tray icon...');
-    // Create a proper 16x16 icon for Windows system tray
-    const iconBuffer = Buffer.from(`
-      <svg width="16" height="16" xmlns="http://www.w3.org/2000/svg">
-        <rect width="16" height="16" fill="#3b82f6" rx="2"/>
-        <text x="8" y="12" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">AI</text>
-      </svg>
-    `);
-    icon = nativeImage.createFromBuffer(iconBuffer);
+    // Minimal 16x16 blue square PNG (raw RGBA → nativeImage)
+    const size = 16;
+    const buffer = Buffer.alloc(size * size * 4);
+    for (let i = 0; i < size * size; i++) {
+      buffer[i * 4 + 0] = 59;   // R (blue-500: #3b82f6)
+      buffer[i * 4 + 1] = 130;  // G
+      buffer[i * 4 + 2] = 246;  // B
+      buffer[i * 4 + 3] = 255;  // A
+    }
+    icon = nativeImage.createFromBuffer(buffer, { width: size, height: size });
   }
   
   // Create the tray

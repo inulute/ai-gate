@@ -12,7 +12,7 @@
 
 [![Website](https://img.shields.io/badge/🌐_Website-aigate.inulute.com-black?style=for-the-badge)](https://aigate.inulute.com)
 
-[![Download AI Gate 2.0.0](https://img.shields.io/badge/Download-Here-blue?style=for-the-badge)](https://www.pling.com/p/2068983/)
+[![Download AI Gate 4.5.0](https://img.shields.io/badge/Download-v4.5.0-blue?style=for-the-badge)](https://aigate.inulute.com/download)
 
 <br/>
 
@@ -22,32 +22,32 @@
 
 ---
 
-## 🎉 What's New in v4.0.2
+## 🎉 What's New in v4.5.0
 
 <table>
 <tr>
 <td width="50%">
 
-### 🎨 Redesigned Interface
-Clean, modern UI that's faster to navigate and easier on the eyes
+### 🚀 Global Webview Pool
+Switching layouts now preserves all webview state — no reloads, no flashing. URLs stay loaded, scroll position maintained, sessions preserved.
 
-### 🪟 Flexible Layouts
-Switch between 1, 2, or 3 panels instantly — work your way
+### 🪟 Multi-Panel Workspace
+View up to 3 AI tools simultaneously with synced or separate tab modes. Auto-expand layouts as you add tools.
 
-### 📌 Persistent Tabs
-Your tools and their state stay exactly where you left them
+### ⚡ Performance Optimized
+Lazy webview creation, ResizeObserver-driven bounds, smooth CSS transitions. 0 typescript errors.
 
 </td>
 <td width="50%">
 
-### ⌨️ Power Shortcuts
-Control everything from your keyboard — layouts, tabs, navigation
+### 🔄 Smart Tab Synchronization
+Fixed tab duplication, disappearing content, and state mismatches. Cleaner active tab management across panels.
 
-### 🛠️ Customizable Tools
-Add, remove, or edit any AI tool in your workspace
+### 📌 State Preservation
+Hidden panels now preserve their active tab selection when switching back to wider layouts — no blank panels.
 
-### ⚙️ Enhanced Settings
-Full redesign with better organization and intuitive controls
+### 🛠️ Rock-Solid Stability
+Fixed React hooks violations, stale closures, and event handler issues. Adding/deleting tools works flawlessly.
 
 </td>
 </tr>
@@ -55,9 +55,10 @@ Full redesign with better organization and intuitive controls
 
 ### Smart Tab Management
 
-- **Single panel mode**: Keep your current tool, expand seamlessly when needed
-- **Persistent ordering**: No random shuffles — your layout stays predictable
-- **Intelligent closing**: Shrinking layouts closes rightmost tabs first, keeping your primary visible
+- **Synced tabs mode**: All panels show the same tab bar — click any tab to switch
+- **Separate tabs mode**: Each panel has independent tab management
+- **Persistent state**: Switching layouts preserves URLs, scroll position, session state
+- **Hidden panel memory**: Your active tool in hidden panels is remembered when expanding layout
 - **Browser-like behavior**: Switch between tools without reloading — everything preserved
 
 ### Quality of Life

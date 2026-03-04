@@ -1,0 +1,275 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (optional - uses package.json if not provided)'
+        required: false
+
+permissions:
+  contents: write
+  
+jobs:
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+          - os: windows-latest
+            platform: windows
+          - os: macos-latest
+            platform: macos
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Extract version from package.json
+        id: package_version
+        run: |
+          VERSION=$(node -e "console.log(require('./package.json').version)")
+          PRODUCT_NAME=$(node -e "console.log(require('./package.json').productName || 'AI Gate')")
+          APP_ID=$(node -e "console.log(require('./package.json').build && require('./package.json').build.appId || 'com.inulute.aigate')")
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "product_name=$PRODUCT_NAME" >> $GITHUB_OUTPUT
+          echo "app_id=$APP_ID" >> $GITHUB_OUTPUT
+          
+          echo "Building version: $VERSION"
+          echo "Product name: $PRODUCT_NAME"
+        shell: bash
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Remove publish config from package.json
+        run: |
+          cp package.json package.json.bak
+          node -e "const pkg = require('./package.json'); delete pkg.build.publish; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
+          echo "Modified package.json (publish config removed)"
+        shell: bash
+      
+      - name: Build TypeScript
+        run: |
+          npx tsc -p tsconfig.electron.json
+          npx tsc -p tsconfig.preload.json
+      
+      - name: Build Vite
+        run: npx vite build
+        env:
+          NODE_ENV: production
+      
+      - name: Build Electron - Windows x64
+        if: matrix.platform == 'windows'
+        run: npx electron-builder --win --x64
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build Electron - Windows ARM64
+        if: matrix.platform == 'windows'
+        run: npx electron-builder --win --arm64
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build Electron - macOS Universal
+        if: matrix.platform == 'macos'
+        run: npx electron-builder --mac --universal
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build Electron - Linux
+        if: matrix.platform == 'linux'
+        run: npx electron-builder --linux
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Import GPG key
+        if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || github.event_name == 'workflow_dispatch'
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+        continue-on-error: true
+      
+      - name: Sign packages
+        if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || github.event_name == 'workflow_dispatch'
+        run: |
+          if command -v gpg &> /dev/null; then
+            echo "Signing packages..."
+            find release-builds -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.deb" \) -exec gpg --batch --yes --detach-sign --armor {} \;
+            echo "Signed packages:"
+            find release-builds -name "*.asc"
+          else
+            echo "GPG not available, skipping signing"
+          fi
+        shell: bash
+        continue-on-error: true
+      
+      - name: Generate checksums - Windows
+        if: matrix.platform == 'windows'
+        run: |
+          cd release-builds
+          Get-ChildItem -Include *.exe,*.zip -Recurse | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash)  $(Split-Path $_.Path -Leaf)" } | Out-File -Encoding ASCII SHA256SUMS.txt
+        shell: pwsh
+      
+      - name: Generate checksums - Unix
+        if: matrix.platform != 'windows'
+        run: |
+          cd release-builds
+          find . -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.zip" -o -name "*.AppImage" -o -name "*.deb" \) -exec shasum -a 256 {} \; > SHA256SUMS.txt 2>/dev/null || true
+        shell: bash
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}-build
+          path: |
+            release-builds/*
+            !release-builds/*.blockmap
+            !release-builds/*.yaml
+            !release-builds/builder-*.yml
+          retention-days: 5
+          compression-level: 6
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || github.event_name == 'workflow_dispatch'
+    
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Extract version info
+        id: version_info
+        run: |
+          VERSION=$(node -e "console.log(require('./package.json').version)")
+          PRODUCT_NAME=$(node -e "console.log(require('./package.json').productName || 'AI Gate')")
+
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            TAG_NAME="${{ github.ref_name }}"
+          elif [[ -n "${{ github.event.inputs.version }}" ]]; then
+            TAG_NAME="v${{ github.event.inputs.version }}"
+          else
+            TAG_NAME="v${VERSION}"
+          fi
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "product_name=$PRODUCT_NAME" >> $GITHUB_OUTPUT
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          
+          echo "Release version: $VERSION"
+          echo "Release tag: $TAG_NAME"
+        shell: bash
+      
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+      
+      - name: Prepare release files
+        run: |
+          mkdir -p ./release-files
+          
+          echo "Artifact directories:"
+          ls -la ./artifacts/
+          
+          find ./artifacts -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.zip" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.asc" \) -exec cp {} ./release-files/ \;
+          
+          cd ./release-files
+          find . -type f -name "SHA256SUMS.txt" -exec cat {} \; > ALL_CHECKSUMS.txt 2>/dev/null || true
+          find . -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.zip" -o -name "*.AppImage" -o -name "*.deb" \) -exec sha256sum {} \; > SHA256SUMS.txt 2>/dev/null || true
+          rm -f ALL_CHECKSUMS.txt
+          
+          echo "Release files prepared:"
+          ls -lah
+        shell: bash
+      
+      - name: Create release notes
+        run: |
+          cat > ./release-files/RELEASE_NOTES.md << EOF
+          # ${{ steps.version_info.outputs.product_name }} ${{ steps.version_info.outputs.tag_name }}
+          
+          Access all your AI tools seamlessly in one place.
+          
+          ## 📥 Downloads
+          
+          ### Windows
+          - **AI-Gate-Setup-${{ steps.version_info.outputs.version }}.exe** - Windows x64 installer (Intel/AMD) - **Most common**
+          - **AI-Gate-Setup-${{ steps.version_info.outputs.version }}-arm64.exe** - Windows ARM64 installer (Surface Pro X, etc.)
+          
+          ### macOS
+          - **AI-Gate-${{ steps.version_info.outputs.version }}-universal.dmg** - macOS installer (Intel + Apple Silicon)
+          - **AI-Gate-${{ steps.version_info.outputs.version }}-universal-mac.zip** - Portable version
+          
+          ### Linux
+          - **AI-Gate-${{ steps.version_info.outputs.version }}.AppImage** - Universal Linux package - **Recommended**
+          - **AI-Gate-${{ steps.version_info.outputs.version }}.deb** - Debian/Ubuntu package
+          
+          ## 🚀 Installation
+          
+          **Windows**: Download the appropriate .exe for your system and run
+          **macOS**: Download the .dmg, open it, and drag AI Gate to Applications
+          **Linux**: Download .AppImage, make it executable (\`chmod +x\`), and run
+          
+          ## 🔒 Verification
+          
+          Verify file integrity using SHA256SUMS.txt
+          
+          ## 📝 What's New
+          
+          See [CHANGELOG.md](https://github.com/inulute/ai-gate/blob/main/CHANGELOG.md) for details.
+          
+          ## 🐛 Report Issues
+          
+          https://github.com/inulute/ai-gate/issues
+          EOF
+        shell: bash
+      
+      - name: Create or update tag
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -f ${{ steps.version_info.outputs.tag_name }}
+          git push -f origin ${{ steps.version_info.outputs.tag_name }}
+        shell: bash
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ steps.version_info.outputs.product_name }} ${{ steps.version_info.outputs.tag_name }}
+          tag_name: ${{ steps.version_info.outputs.tag_name }}
+          body_path: ./release-files/RELEASE_NOTES.md
+          files: |
+            ./release-files/*.exe
+            ./release-files/*.dmg
+            ./release-files/*.zip
+            ./release-files/*.AppImage
+            ./release-files/*.deb
+            ./release-files/*.asc
+            ./release-files/SHA256SUMS.txt
+          draft: false
+          prerelease: ${{ contains(steps.version_info.outputs.tag_name, 'beta') || contains(steps.version_info.outputs.tag_name, 'alpha') }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
