@@ -504,9 +504,11 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
   // Cleanup: Validate activePanelTabs when instances or layout change
   // NOTE: activePanelTabs is NOT in deps to prevent infinite loops.
   // Dedup is handled by setActivePanelTab, this only handles:
-  // 1. Deleted instances → find replacement
+  // 1. Deleted instances → find replacement (for visible panels) or remove (for hidden panels)
   // 2. Separate mode → ensure instance belongs to panel
-  // 3. Panels beyond layout → clean up stale entries
+  // IMPORTANT: We do NOT delete entries for hidden panels (beyond layout).
+  // Keeping them preserves the active tab so switching back to a wider layout
+  // instantly shows the correct tool without a blank panel.
   useEffect(() => {
     const instanceIds = new Set(toolInstances.map(inst => inst.id));
     const layoutNumber = parseInt(layout);
@@ -515,55 +517,55 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
       const updated = { ...current };
       let hasChanges = false;
 
-      for (let panelId = 0; panelId < layoutNumber; panelId++) {
+      // Check ALL panels (0-2), not just visible ones, so we catch deleted instances everywhere
+      for (let panelId = 0; panelId < 3; panelId++) {
         const activeId = updated[panelId];
+        if (!activeId) continue; // No entry for this panel, nothing to validate
 
-        if (!activeId || !instanceIds.has(activeId)) {
-          // No active tab or active instance was deleted - find replacement
-          const candidates = (settings.syncedTabs
-            ? toolInstances
-            : toolInstances.filter(inst => inst.panelId === panelId)
-          ).sort((a, b) => a.positionInPanel - b.positionInPanel);
+        if (!instanceIds.has(activeId)) {
+          // Active instance was deleted
+          if (panelId < layoutNumber) {
+            // Visible panel: find a replacement
+            const candidates = (settings.syncedTabs
+              ? toolInstances
+              : toolInstances.filter(inst => inst.panelId === panelId)
+            ).sort((a, b) => a.positionInPanel - b.positionInPanel);
 
-          if (candidates.length > 0) {
-            // Prefer instance not already active in another panel
-            const otherActiveIds = new Set(
-              Object.entries(updated)
-                .filter(([pid]) => parseInt(pid) !== panelId && parseInt(pid) < layoutNumber)
-                .map(([, id]) => id)
-            );
-            const preferred = candidates.find(inst => !otherActiveIds.has(inst.id));
-            updated[panelId] = preferred ? preferred.id : candidates[0].id;
-          } else {
-            delete updated[panelId];
-          }
-          hasChanges = true;
-        } else if (!settings.syncedTabs) {
-          // In separate mode, verify the instance belongs to this panel
-          const instance = toolInstances.find(inst => inst.id === activeId);
-          if (instance && instance.panelId !== panelId) {
-            const panelCandidates = toolInstances
-              .filter(inst => inst.panelId === panelId)
-              .sort((a, b) => a.positionInPanel - b.positionInPanel);
-
-            if (panelCandidates.length > 0) {
-              updated[panelId] = panelCandidates[0].id;
+            if (candidates.length > 0) {
+              const otherActiveIds = new Set(
+                Object.entries(updated)
+                  .filter(([pid]) => parseInt(pid) !== panelId && parseInt(pid) < layoutNumber)
+                  .map(([, id]) => id)
+              );
+              const preferred = candidates.find(inst => !otherActiveIds.has(inst.id));
+              updated[panelId] = preferred ? preferred.id : candidates[0].id;
             } else {
               delete updated[panelId];
             }
-            hasChanges = true;
+          } else {
+            // Hidden panel: just remove the stale entry (no replacement needed)
+            delete updated[panelId];
+          }
+          hasChanges = true;
+        } else if (panelId < layoutNumber) {
+          // Only validate panel assignment for VISIBLE panels
+          if (!settings.syncedTabs) {
+            const instance = toolInstances.find(inst => inst.id === activeId);
+            if (instance && instance.panelId !== panelId) {
+              const panelCandidates = toolInstances
+                .filter(inst => inst.panelId === panelId)
+                .sort((a, b) => a.positionInPanel - b.positionInPanel);
+
+              if (panelCandidates.length > 0) {
+                updated[panelId] = panelCandidates[0].id;
+              } else {
+                delete updated[panelId];
+              }
+              hasChanges = true;
+            }
           }
         }
       }
-
-      // Clean up entries for panels beyond current layout
-      Object.keys(updated).forEach(pidStr => {
-        const pid = parseInt(pidStr);
-        if (pid >= layoutNumber) {
-          delete updated[pid];
-          hasChanges = true;
-        }
-      });
 
       return hasChanges ? updated : current;
     });

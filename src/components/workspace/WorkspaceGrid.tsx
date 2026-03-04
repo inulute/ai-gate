@@ -1,5 +1,5 @@
 // src/components/workspace/WorkspaceGrid.tsx
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useLayoutEffect, useCallback } from 'react';
 import { useAITools } from '@/context/AIToolsContext';
 import { Panel } from './Panel';
 import { AIToolView } from './AIToolView';
@@ -63,8 +63,13 @@ export const WorkspaceGrid = () => {
     });
   }, [activePanelTabs, toolInstances]);
 
+  // Track previous bounds to detect 0→nonzero transitions (skip CSS transition for those)
+  const prevBoundsRef = useRef<Record<number, PanelBounds>>({});
+
   // ResizeObserver to track panel content area bounds
-  useEffect(() => {
+  // useLayoutEffect ensures bounds are calculated BEFORE paint,
+  // so webviews never flash as invisible on layout switch.
+  useLayoutEffect(() => {
     const updateBounds = () => {
       const containerRect = containerRef.current?.getBoundingClientRect();
       if (!containerRect) return;
@@ -81,6 +86,7 @@ export const WorkspaceGrid = () => {
           };
         }
       });
+      prevBoundsRef.current = newBounds;
       setPanelBounds(newBounds);
     };
 
@@ -94,7 +100,10 @@ export const WorkspaceGrid = () => {
       if (el) observer.observe(el);
     });
 
-    // Initial bounds calculation after layout settles
+    // Synchronous initial calculation — DOM is already committed at this point
+    updateBounds();
+
+    // Also schedule a rAF as backup in case CSS transitions affect layout
     requestAnimationFrame(updateBounds);
 
     return () => observer.disconnect();
@@ -154,6 +163,13 @@ export const WorkspaceGrid = () => {
           const isActive = activePanelId !== null;
           const bounds = activePanelId !== null ? panelBounds[activePanelId] : null;
 
+          // Only use CSS transitions when repositioning between panels (both have valid bounds).
+          // Skip transitions when appearing from hidden (0→nonzero) to avoid "growing from nothing".
+          const prevBounds = activePanelId !== null ? prevBoundsRef.current[activePanelId] : null;
+          const hadValidBounds = prevBounds && prevBounds.width > 0 && prevBounds.height > 0;
+          const hasValidBounds = bounds && bounds.width > 0 && bounds.height > 0;
+          const useTransition = hadValidBounds && hasValidBounds;
+
           return (
             <div
               key={instance.id}
@@ -165,11 +181,13 @@ export const WorkspaceGrid = () => {
                 top: bounds ? bounds.top : 0,
                 width: bounds ? bounds.width : 0,
                 height: bounds ? bounds.height : 0,
-                visibility: isActive && bounds ? 'visible' : 'hidden',
+                visibility: isActive && hasValidBounds ? 'visible' : 'hidden',
                 zIndex: isActive ? 5 : -1,
                 pointerEvents: isActive ? 'auto' : 'none',
-                // Smooth repositioning when layout changes
-                transition: 'left 0.4s cubic-bezier(0.4, 0, 0.2, 1), top 0.4s cubic-bezier(0.4, 0, 0.2, 1), width 0.4s cubic-bezier(0.4, 0, 0.2, 1), height 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                // Only smooth repositioning between panels — no transition when appearing from zero
+                transition: useTransition
+                  ? 'left 0.4s cubic-bezier(0.4, 0, 0.2, 1), top 0.4s cubic-bezier(0.4, 0, 0.2, 1), width 0.4s cubic-bezier(0.4, 0, 0.2, 1), height 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+                  : 'none',
                 overflow: 'hidden',
                 borderRadius: '0 0 0.5rem 0.5rem', // Match panel border radius at bottom
               }}
