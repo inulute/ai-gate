@@ -179,17 +179,23 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   const updateTool = (updatedTool: AITool) => {
-    setTools(tools.map(tool => 
+    setTools(prev => prev.map(tool =>
       tool.id === updatedTool.id ? updatedTool : tool
     ));
-    
-    setToolInstances(prev => 
-      prev.map(instance => 
-        instance.toolId === updatedTool.id 
+
+    // Only update instances if the tool name actually changed
+    // This avoids unnecessary re-renders of all webview containers
+    setToolInstances(prev => {
+      const needsUpdate = prev.some(
+        inst => inst.toolId === updatedTool.id && inst.title !== updatedTool.name
+      );
+      if (!needsUpdate) return prev; // Same reference = no re-render
+      return prev.map(instance =>
+        instance.toolId === updatedTool.id
           ? { ...instance, title: updatedTool.name }
           : instance
-      )
-    );
+      );
+    });
 
     toast({
       title: "Tool Updated",
@@ -200,9 +206,9 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
 
   const removeTool = (id: string) => {
     const tool = tools.find(t => t.id === id);
-    setTools(tools.filter(t => t.id !== id));
-    setToolInstances(toolInstances.filter(instance => instance.toolId !== id));
-    
+    setTools(prev => prev.filter(t => t.id !== id));
+    setToolInstances(prev => prev.filter(instance => instance.toolId !== id));
+
     toast({
       title: "Tool Removed",
       description: tool ? `${tool.name} has been removed.` : 'Tool has been removed.',
@@ -229,6 +235,8 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
       }
     }
 
+    // CRITICAL: Expand layout FIRST before calculating target panel
+    // This ensures panelId calculations are based on the correct layout
     const unpinnedInstances = toolInstances.filter(instance => !instance.isPinned);
     const totalVisible = unpinnedInstances.length + 1;
     let targetLayout = layout;
@@ -244,10 +252,15 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
       }
     }
 
-    // Find target panel
+    // Expand layout BEFORE calculating target panel to avoid mismatches
+    if (shouldExpandLayout) {
+      setLayoutState(targetLayout);
+    }
+
+    // Find target panel using the FINAL layout (after expansion)
     let targetPanelId = 0;
     let positionInPanel = 0;
-    const layoutNumber = parseInt(shouldExpandLayout ? targetLayout : layout);
+    const layoutNumber = parseInt(targetLayout);
 
     if (createNewInstance) {
       // Ctrl+Click: add to same panel as existing instance of this tool
@@ -300,10 +313,6 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
       positionInPanel: positionInPanel
     };
 
-    if (shouldExpandLayout) {
-      setLayoutState(targetLayout);
-    }
-
     setToolInstances(current => [...current, newInstance]);
     setActivePanelTab(targetPanelId, newInstance.id);
 
@@ -341,6 +350,28 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
     setToolInstances(current => {
       const updated = current.filter(inst => inst.id !== instanceId);
       return updated.map((inst, index) => ({ ...inst, position: index }));
+    });
+    
+    // Clean up activePanelTabs if the closed instance was active
+    setActivePanelTabs(current => {
+      const updated = { ...current };
+      // Check if this instance was active in any panel
+      Object.keys(updated).forEach(pid => {
+        if (updated[parseInt(pid)] === instanceId) {
+          // Find another instance in this panel to activate
+          const remainingInstances = toolInstances
+            .filter(inst => inst.id !== instanceId && inst.panelId === parseInt(pid))
+            .sort((a, b) => a.positionInPanel - b.positionInPanel);
+          
+          if (remainingInstances.length > 0) {
+            updated[parseInt(pid)] = remainingInstances[0].id;
+          } else {
+            // No instances left in this panel, remove the active tab entry
+            delete updated[parseInt(pid)];
+          }
+        }
+      });
+      return updated;
     });
     
     setRecentlyClosed(prev => [instance, ...prev.slice(0, 4)]);
@@ -470,6 +501,74 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [toolInstances, recentlyClosed]);
 
+  // Cleanup: Validate activePanelTabs when instances or layout change
+  // NOTE: activePanelTabs is NOT in deps to prevent infinite loops.
+  // Dedup is handled by setActivePanelTab, this only handles:
+  // 1. Deleted instances → find replacement
+  // 2. Separate mode → ensure instance belongs to panel
+  // 3. Panels beyond layout → clean up stale entries
+  useEffect(() => {
+    const instanceIds = new Set(toolInstances.map(inst => inst.id));
+    const layoutNumber = parseInt(layout);
+
+    setActivePanelTabs(current => {
+      const updated = { ...current };
+      let hasChanges = false;
+
+      for (let panelId = 0; panelId < layoutNumber; panelId++) {
+        const activeId = updated[panelId];
+
+        if (!activeId || !instanceIds.has(activeId)) {
+          // No active tab or active instance was deleted - find replacement
+          const candidates = (settings.syncedTabs
+            ? toolInstances
+            : toolInstances.filter(inst => inst.panelId === panelId)
+          ).sort((a, b) => a.positionInPanel - b.positionInPanel);
+
+          if (candidates.length > 0) {
+            // Prefer instance not already active in another panel
+            const otherActiveIds = new Set(
+              Object.entries(updated)
+                .filter(([pid]) => parseInt(pid) !== panelId && parseInt(pid) < layoutNumber)
+                .map(([, id]) => id)
+            );
+            const preferred = candidates.find(inst => !otherActiveIds.has(inst.id));
+            updated[panelId] = preferred ? preferred.id : candidates[0].id;
+          } else {
+            delete updated[panelId];
+          }
+          hasChanges = true;
+        } else if (!settings.syncedTabs) {
+          // In separate mode, verify the instance belongs to this panel
+          const instance = toolInstances.find(inst => inst.id === activeId);
+          if (instance && instance.panelId !== panelId) {
+            const panelCandidates = toolInstances
+              .filter(inst => inst.panelId === panelId)
+              .sort((a, b) => a.positionInPanel - b.positionInPanel);
+
+            if (panelCandidates.length > 0) {
+              updated[panelId] = panelCandidates[0].id;
+            } else {
+              delete updated[panelId];
+            }
+            hasChanges = true;
+          }
+        }
+      }
+
+      // Clean up entries for panels beyond current layout
+      Object.keys(updated).forEach(pidStr => {
+        const pid = parseInt(pidStr);
+        if (pid >= layoutNumber) {
+          delete updated[pid];
+          hasChanges = true;
+        }
+      });
+
+      return hasChanges ? updated : current;
+    });
+  }, [toolInstances, layout, settings.syncedTabs]);
+
   // New panel management methods
   const moveInstanceToPanel = (instanceId: string, targetPanelId: number, position?: number) => {
     setToolInstances(current => {
@@ -518,10 +617,31 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   const setActivePanelTab = (panelId: number, instanceId: string) => {
-    setActivePanelTabs(current => ({
-      ...current,
-      [panelId]: instanceId
-    }));
+    setActivePanelTabs(current => {
+      const updated = { ...current, [panelId]: instanceId };
+
+      // In synced mode, enforce uniqueness: each instance active in at most one panel
+      if (settings.syncedTabs) {
+        const layoutNumber = parseInt(layout);
+        for (let i = 0; i < layoutNumber; i++) {
+          if (i !== panelId && updated[i] === instanceId) {
+            // Panel i has the same instance - find an alternative
+            const activeIds = new Set(
+              Object.entries(updated)
+                .filter(([pid]) => parseInt(pid) < layoutNumber)
+                .map(([, id]) => id)
+            );
+            const alternative = toolInstances.find(inst => !activeIds.has(inst.id));
+            if (alternative) {
+              updated[i] = alternative.id;
+            }
+            // If no alternative (more panels than instances), duplicate is unavoidable
+          }
+        }
+      }
+
+      return updated;
+    });
   };
 
   const duplicateInstance = (instanceId: string, targetPanelId?: number) => {
@@ -558,30 +678,34 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   const createInstanceInPanel = (tool: AITool, requestedPanelId: number) => {
-    // Check if an instance of this tool already exists
-    const existingInstance = toolInstances.find(inst => inst.toolId === tool.id);
+    // Check if an instance of this tool already exists in the REQUESTED panel
+    // Allow multiple instances of the same tool - only check within the requested panel
+    const existingInstanceInPanel = toolInstances.find(
+      inst => inst.toolId === tool.id && inst.panelId === requestedPanelId
+    );
 
-    if (existingInstance) {
-      // Focus and highlight (regardless of panel visibility)
-      // In synced tabs mode, the tab will be visible anyway
-      focusInstance(existingInstance.id);
-      setActivePanelTab(existingInstance.panelId, existingInstance.id);
-      highlightPanel(existingInstance.panelId);
+    if (existingInstanceInPanel) {
+      // If it exists in this panel, just focus it
+      focusInstance(existingInstanceInPanel.id);
+      setActivePanelTab(requestedPanelId, existingInstanceInPanel.id);
+      highlightPanel(requestedPanelId);
 
       toast({
         title: "Already Opened",
-        description: `${tool.name} is already open in panel ${existingInstance.panelId + 1}.`,
+        description: `${tool.name} is already open in this panel.`,
         duration: 2000
       });
       return;
     }
 
-    // Smart panel selection: find empty panel first, then least populated
+    // Use the requested panel ID - respect user's explicit choice
+    // Only apply smart distribution if the requested panel is invalid (out of bounds)
     const layoutNumber = parseInt(layout);
     let targetPanelId = requestedPanelId;
 
-    // Only apply smart distribution in multi-panel mode (2 or 3 panels)
-    if (layoutNumber > 1) {
+    // Validate requested panel is within layout bounds
+    if (requestedPanelId < 0 || requestedPanelId >= layoutNumber) {
+      // Requested panel is invalid, use smart distribution
       let foundEmptyPanel = false;
 
       // First, try to find an empty panel
@@ -610,7 +734,7 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
     const panelInstances = toolInstances.filter(inst => inst.panelId === targetPanelId);
 
     const newInstance: ToolInstance = {
-      id: `${tool.id}-${Date.now()}`,
+      id: `${tool.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       toolId: tool.id,
       title: tool.name,
       state: {
@@ -643,7 +767,20 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
 
   const getActivePanelInstance = (panelId: number): ToolInstance | undefined => {
     const activeId = activePanelTabs[panelId];
-    return activeId ? toolInstances.find(inst => inst.id === activeId) : undefined;
+    if (!activeId) return undefined;
+    
+    const instance = toolInstances.find(inst => inst.id === activeId);
+    
+    // If instance doesn't exist or doesn't belong to this panel (in separate mode), return undefined
+    // In synced mode, any instance can be active in any panel
+    if (!instance) return undefined;
+    
+    // In separate mode, verify the instance belongs to this panel
+    if (!settings.syncedTabs && instance.panelId !== panelId) {
+      return undefined;
+    }
+    
+    return instance;
   };
 
   const highlightPanel = (panelId: number) => {
@@ -692,6 +829,7 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
     layout,
     activePanelTabs,
     highlightedPanelId,
+    settings.syncedTabs,
   ]);
 
   return (

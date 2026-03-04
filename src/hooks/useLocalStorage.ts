@@ -16,9 +16,20 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
 
   const setValue = (value: T | ((val: T) => T)) => {
     try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+      if (value instanceof Function) {
+        // Use React's functional updater to get the LATEST state value.
+        // This prevents stale closure bugs when multiple setValue calls
+        // happen in the same render cycle (e.g., updating activePanelTabs
+        // for multiple panels in one event handler).
+        setStoredValue(prev => {
+          const newValue = value(prev);
+          window.localStorage.setItem(key, JSON.stringify(newValue));
+          return newValue;
+        });
+      } else {
+        setStoredValue(value);
+        window.localStorage.setItem(key, JSON.stringify(value));
+      }
     } catch (error) {
       console.error(error);
     }

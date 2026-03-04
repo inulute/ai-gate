@@ -2,6 +2,7 @@
 import { X } from 'lucide-react';
 import { ToolInstance, AITool } from '@/types/AITool';
 import { useAITools } from '@/context/AIToolsContext';
+import { useSettings } from '@/context/SettingsContext';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -15,6 +16,7 @@ interface TabProps {
 
 export const Tab = ({ instance, tool, isActive, onClose, panelId }: TabProps) => {
   const { setActivePanelTab, highlightPanel } = useAITools();
+  const { settings } = useSettings();
 
   const {
     attributes,
@@ -40,15 +42,17 @@ export const Tab = ({ instance, tool, isActive, onClose, panelId }: TabProps) =>
     // Prevent drag from interfering with click
     e.stopPropagation();
 
-    // Check if this instance belongs to the current panel
-    if (instance.panelId === panelId) {
-      // Instance is in this panel - normal activation
-      setActivePanelTab(panelId, instance.id);
-    } else {
-      // Instance is in a different panel - highlight that panel and focus it there
-      setActivePanelTab(instance.panelId, instance.id);
+    // In separate mode, check if instance belongs to this panel
+    if (!settings.syncedTabs && instance.panelId !== panelId) {
+      // Can't activate instance from another panel - highlight where it lives
       highlightPanel(instance.panelId);
+      return;
     }
+
+    // setActivePanelTab handles uniqueness enforcement in synced mode:
+    // if this instance is active in another panel, it automatically
+    // finds an alternative for that panel.
+    setActivePanelTab(panelId, instance.id);
   };
 
   const handleClose = (e: React.MouseEvent) => {
