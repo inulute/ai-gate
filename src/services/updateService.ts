@@ -35,6 +35,13 @@ class UpdateService {
   async checkForUpdates(): Promise<UpdateCheckResult> {
     try {
       const currentVersion = this.getCurrentVersion();
+
+      // Don't check for updates if we couldn't determine the current version
+      if (!currentVersion || currentVersion === '0.0.0') {
+        console.warn('Could not determine current app version, skipping update check');
+        return { hasUpdate: false };
+      }
+
       const latestRelease = await this.fetchLatestRelease();
       
       if (!latestRelease) {
@@ -68,10 +75,10 @@ class UpdateService {
   private getCurrentVersion(): string {
     const version = (typeof window !== 'undefined' && (window as any).electronAPI?.getAppVersion?.()) ||
                    (typeof window !== 'undefined' && (window as any).APP_VERSION) ||
-                   '4.0.2'
-    
+                   '0.0.0'
+
     console.log('Current app version detected:', version);
-    return version || '4.0.2';
+    return version || '0.0.0';
   }
 
   private async fetchLatestRelease(): Promise<any> {

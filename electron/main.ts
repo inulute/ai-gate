@@ -359,6 +359,11 @@ ipcMain.handle('set-autostart', (_event: any, enabled: boolean) => {
   return true;
 });
 
+// Synchronous IPC for app version — called from preload before the renderer is ready
+ipcMain.on('get-app-version', (event: any) => {
+  event.returnValue = app.getVersion();
+});
+
 app.whenReady().then(() => {
   // Register global shortcuts to neutralize default close behavior
   try {
