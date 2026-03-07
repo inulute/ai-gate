@@ -41,6 +41,61 @@ global.isQuiting = false;
 const launchArgs = process.argv.slice(1);
 const launchedHidden = launchArgs.includes('--hidden');
 
+// Wayland support detection and configuration
+const detectAndEnableWayland = () => {
+  const isWaylandSession = process.env.WAYLAND_DISPLAY ||
+                          process.env.XDG_SESSION_TYPE === 'wayland' ||
+                          process.env.NIXOS_OZONE_WL === '1';
+
+  if (isWaylandSession) {
+    console.log('🖥️  Detected Wayland session - Enabling native Wayland support...');
+
+    // Enable Ozone/Wayland support before app is ready
+    app.commandLine.appendSwitch('enable-features', [
+      'WaylandWindowDecorations',
+      'VaapiIgnoreDriverChecks',
+      'VaapiVideoDecoder',
+      'VaapiVideoEncoder',
+      'AcceleratedVideoDecoder',
+      'AcceleratedVideoEncoder',
+      'UseMultiPlaneFormatForHardwareVideo',
+      'Ozone',
+    ].join(','));
+
+    // Use Ozone/Wayland instead of X11
+    app.commandLine.appendSwitch('ozone-platform', 'wayland');
+
+    console.log('✅ Wayland flags enabled');
+  } else {
+    const displayServer = process.env.DISPLAY ? 'X11/Xwayland' : 'Unknown';
+    console.log(`🖥️  Display server: ${displayServer}`);
+  }
+};
+
+// Parse additional Electron arguments from environment (for NixOS and advanced users)
+const parseElectronArgs = () => {
+  const electronArgs = process.env.ELECTRON_ARGS;
+  if (electronArgs) {
+    console.log('📋 Applying custom ELECTRON_ARGS from environment...');
+    // Parse comma-separated or space-separated feature flags
+    const features = electronArgs
+      .split(/[,\s]+/)
+      .filter((flag: string) => flag && flag.startsWith('--enable-features='))
+      .map((flag: string) => flag.replace('--enable-features=', ''));
+
+    if (features.length > 0) {
+      const allFeatures = features.join(',');
+      console.log(`   Features: ${allFeatures}`);
+      // Append additional features to existing ones
+      app.commandLine.appendSwitch('enable-features', allFeatures);
+    }
+  }
+};
+
+// Call before app is ready
+detectAndEnableWayland();
+parseElectronArgs();
+
 function createWindow() {
   // Create the browser window.
   mainWindow = new BrowserWindow({
