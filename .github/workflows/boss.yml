@@ -18,25 +18,33 @@ permissions:
   contents: write
   
 jobs:
+  compute-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Set build matrix
+        id: set-matrix
+        run: |
+          PLATFORM="${{ inputs.platform }}"
+          if [ -z "$PLATFORM" ] || [ "$PLATFORM" == "all" ]; then
+            echo 'matrix={"include":[{"os":"ubuntu-latest","platform":"linux"},{"os":"windows-latest","platform":"windows"},{"os":"macos-latest","platform":"macos"}]}' >> $GITHUB_OUTPUT
+          elif [ "$PLATFORM" == "linux" ]; then
+            echo 'matrix={"include":[{"os":"ubuntu-latest","platform":"linux"}]}' >> $GITHUB_OUTPUT
+          elif [ "$PLATFORM" == "windows" ]; then
+            echo 'matrix={"include":[{"os":"windows-latest","platform":"windows"}]}' >> $GITHUB_OUTPUT
+          elif [ "$PLATFORM" == "macos" ]; then
+            echo 'matrix={"include":[{"os":"macos-latest","platform":"macos"}]}' >> $GITHUB_OUTPUT
+          fi
+
   build:
     name: Build ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    
+    needs: compute-matrix
+
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            platform: linux
-          - os: windows-latest
-            platform: windows
-          - os: macos-latest
-            platform: macos
-
-    if: >
-      github.event_name != 'workflow_dispatch' ||
-      inputs.platform == 'all' ||
-      inputs.platform == matrix.platform
+      matrix: ${{ fromJson(needs.compute-matrix.outputs.matrix) }}
 
     steps:
       - name: Checkout
@@ -157,7 +165,7 @@ jobs:
 
   release:
     name: Create Release
-    needs: build
+    needs: [compute-matrix, build]
     runs-on: ubuntu-latest
     if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || github.event_name == 'workflow_dispatch'
     
