@@ -224,6 +224,7 @@ jobs:
           ### Linux
           - **AI-Gate-${{ steps.version_info.outputs.version }}.AppImage** - Universal Linux package - **Recommended**
           - **AI-Gate-${{ steps.version_info.outputs.version }}.deb** - Debian/Ubuntu package
+          - **AI-Gate-${{ steps.version_info.outputs.version }}.zip** - Pre-built archive (used by Flatpak/Flathub)
           
           ## 🚀 Installation
           
