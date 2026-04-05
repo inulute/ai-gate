@@ -27,7 +27,7 @@ to the release:
 
 ```bash
 # Download and hash the zip
-curl -L https://github.com/inulute/ai-gate/releases/download/v4.5.0/AI-Gate-4.5.0.zip \
+curl -L "https://github.com/inulute/ai-gate/releases/download/v4.5.0/AI.Gate-4.5.0.zip" \
   | sha256sum
 ```
 

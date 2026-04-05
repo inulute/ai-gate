@@ -47,7 +47,7 @@ modules:
         dest-filename: ai-gate.sh
         commands:
           - export TMPDIR="${XDG_RUNTIME_DIR}/app/${FLATPAK_ID}"
-          - exec /app/ai-gate/ai-gate --no-sandbox --disable-gpu-sandbox --disable-software-rasterizer "$@"
+          - exec /app/ai-gate/ai-gate --no-sandbox --disable-gpu-sandbox --in-process-gpu "$@"
       # Desktop entry, metainfo, and icon bundled alongside the manifest
       - type: file
         path: com.inulute.aigate.desktop
