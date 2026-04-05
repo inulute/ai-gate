@@ -9,6 +9,10 @@ on:
       version:
         description: 'Version number (optional - uses package.json if not provided)'
         required: false
+      platform:
+        description: 'Platform to build (linux, windows, macos, or all)'
+        required: false
+        default: 'all'
 
 permissions:
   contents: write
@@ -28,7 +32,12 @@ jobs:
             platform: windows
           - os: macos-latest
             platform: macos
-    
+
+    if: >
+      github.event_name != 'workflow_dispatch' ||
+      inputs.platform == 'all' ||
+      inputs.platform == matrix.platform
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
