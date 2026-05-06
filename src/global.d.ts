@@ -6,6 +6,9 @@ interface Window {
       setSettings: (settings: any) => Promise<void>;
       showWindow: () => Promise<void>;
       setAutostart: (enabled: boolean) => Promise<void>;
+      setShortcutConfig: (shortcuts: { id: string; name: string; mode: 'standard' | 'prefix'; keys: string[][] }[]) => void;
+      setShortcutRecordingActive: (isActive: boolean) => void;
+      onShortcut: (cb: (payload: { type: string; shortcutId?: string }) => void) => () => void;
       openExternal: (url: string) => void;
     };
   }

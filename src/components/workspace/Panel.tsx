@@ -11,7 +11,7 @@ interface PanelProps {
 }
 
 export const Panel = ({ panelId, contentAreaRef }: PanelProps) => {
-  const { getInstancesByPanel, getActivePanelInstance, setActivePanelTab, highlightedPanelId, toolInstances, activePanelTabs } = useAITools();
+  const { getInstancesByPanel, getActivePanelInstance, setActivePanelTab, setActivePanel, highlightedPanelId, toolInstances, activePanelTabs } = useAITools();
   const { settings } = useSettings();
   const panelInstances = getInstancesByPanel(panelId);
 
@@ -42,6 +42,8 @@ export const Panel = ({ panelId, contentAreaRef }: PanelProps) => {
   if (shouldShowEmptyState) {
     return (
       <div
+        onMouseDown={() => setActivePanel(panelId)}
+        onFocus={() => setActivePanel(panelId)}
         className={`h-full border rounded-lg flex flex-col transition-all duration-300 ${
           isHighlighted
             ? 'border-primary premium-glow ring-4 ring-primary/40'
@@ -57,6 +59,8 @@ export const Panel = ({ panelId, contentAreaRef }: PanelProps) => {
 
   return (
     <div
+      onMouseDown={() => setActivePanel(panelId)}
+      onFocus={() => setActivePanel(panelId)}
       className={`h-full border rounded-lg flex flex-col overflow-hidden transition-all duration-100 ${
         isHighlighted
           ? 'border-primary premium-glow ring-4 ring-primary/40'

@@ -2,21 +2,33 @@
 import { useEffect } from 'react';
 import { useShortcuts } from '@/context/ShortcutsContext';
 import { useAITools } from '@/context/AIToolsContext';
+import { useSettings } from '@/context/SettingsContext';
 
 export const useShortcutActions = () => {
   const { registerAction, registerToolHotkeyAction, toolHotkeys } = useShortcuts();
+  const { settings } = useSettings();
   const { 
+    tools,
     toolInstances, 
+    layout,
+    activePanelId,
     closeToolInstance, 
     closeAllInstances, 
+    restoreLastClosed,
     setLayout,
-    updateToolInstance
+    updateToolInstance,
+    focusInstance,
+    setActivePanelTab,
+    getActivePanelInstance,
+    getInstancesByPanel,
+    createInstanceInPanel
   } = useAITools();
 
   useEffect(() => {
+    const visibleActivePanelId = activePanelId < parseInt(layout) ? activePanelId : 0;
     
     registerAction('close-current-tool', () => {
-      const activeInstance = toolInstances[toolInstances.length - 1];
+      const activeInstance = getActivePanelInstance(visibleActivePanelId);
       if (activeInstance) {
         closeToolInstance(activeInstance.id);
       }
@@ -24,6 +36,10 @@ export const useShortcutActions = () => {
 
     registerAction('close-all-tools', () => {
       closeAllInstances();
+    });
+
+    registerAction('undo-close-tool', () => {
+      restoreLastClosed();
     });
 
     registerAction('layout-single', () => {
@@ -36,15 +52,34 @@ export const useShortcutActions = () => {
       setLayout('3');
     });
 
+    Array.from({ length: 9 }).forEach((_, index) => {
+      registerAction(`switch-tab-${index + 1}`, () => {
+        const visibleInstances = settings.syncedTabs ? toolInstances : getInstancesByPanel(visibleActivePanelId);
+        const instance = visibleInstances[index];
+        if (instance) {
+          setActivePanelTab(visibleActivePanelId, instance.id);
+          focusInstance(instance.id);
+        }
+      });
+    });
+
+    tools.forEach((tool, index) => {
+      registerAction(`new-tool-tab-${index + 1}`, () => {
+        createInstanceInPanel(tool, visibleActivePanelId);
+      });
+    });
+
     toolHotkeys.forEach(mapping => {
       registerToolHotkeyAction(mapping.id, () => {
         const idx = toolInstances.findIndex(i => i.toolId === mapping.toolId);
         if (idx >= 0) {
           const instance = toolInstances[idx];
-          updateToolInstance(instance.id, { lastActive: new Date() as any });
+          updateToolInstance(instance.id, { lastActive: new Date() });
+          setActivePanelTab(instance.panelId, instance.id);
+          focusInstance(instance.id);
         }
       });
     });
 
-  }, [registerAction, registerToolHotkeyAction, toolHotkeys, toolInstances, closeToolInstance, closeAllInstances, setLayout, updateToolInstance]);
+  }, [registerAction, registerToolHotkeyAction, toolHotkeys, tools, toolInstances, layout, activePanelId, settings.syncedTabs, closeToolInstance, closeAllInstances, restoreLastClosed, setLayout, updateToolInstance, focusInstance, setActivePanelTab, getActivePanelInstance, getInstancesByPanel, createInstanceInPanel]);
 };

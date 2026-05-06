@@ -1,14 +1,17 @@
 // src/components/ui/keyboard-shortcuts.tsx
 import { useState, useEffect } from 'react';
 import { useShortcuts } from '@/context/ShortcutsContext';
+import { useAITools } from '@/context/AIToolsContext';
 import { Button } from './button';
 import { Card, CardContent, CardHeader, CardTitle } from './card';
 import { Badge } from './badge';
 import { Keyboard, X } from 'lucide-react';
+import { formatShortcutCombo, getShortcutDisplayDescription, shouldShowShortcut } from '@/lib/shortcutUtils';
 
 export const KeyboardShortcuts = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { shortcuts, registerAction } = useShortcuts();
+  const { tools } = useAITools();
 
   // Register the show-shortcuts action
   useEffect(() => {
@@ -32,7 +35,7 @@ export const KeyboardShortcuts = () => {
 
   if (!isOpen) return null;
 
-  const groupedShortcuts = shortcuts.reduce((acc, shortcut) => {
+  const groupedShortcuts = shortcuts.filter(shortcut => shouldShowShortcut(shortcut, tools)).reduce((acc, shortcut) => {
     if (!acc[shortcut.category]) {
       acc[shortcut.category] = [];
     }
@@ -71,19 +74,25 @@ export const KeyboardShortcuts = () => {
                               !shortcut.enabled ? 'opacity-50' : ''
                             }`}
                           >
-                            <span className="text-sm">{shortcut.description}</span>
-                            <div className="flex gap-1">
-                              {shortcut.keys.map((key, keyIndex) => (
-                                <div key={keyIndex} className="flex items-center gap-1">
-                                  <Badge 
-                                    variant={shortcut.enabled ? "secondary" : "outline"} 
-                                    className="text-xs"
-                                  >
-                                    {key}
-                                  </Badge>
-                                  {keyIndex < shortcut.keys.length - 1 && (
-                                    <span className="text-muted-foreground text-xs">+</span>
+                            <span className="text-sm">{getShortcutDisplayDescription(shortcut, tools)}</span>
+                            <div className="flex flex-wrap justify-end gap-1">
+                              {shortcut.keys.length === 0 && (
+                                <span className="text-xs text-muted-foreground">Not assigned</span>
+                              )}
+                              {shortcut.keys.map((combo, comboIndex) => (
+                                <div key={comboIndex} className="flex items-center gap-1">
+                                  {comboIndex > 0 && (
+                                    <span className="text-muted-foreground text-xs">then</span>
                                   )}
+                                  {formatShortcutCombo(combo).map((key) => (
+                                    <Badge
+                                      key={`${comboIndex}-${key}`}
+                                      variant={shortcut.enabled ? "secondary" : "outline"}
+                                      className="text-xs"
+                                    >
+                                      {key}
+                                    </Badge>
+                                  ))}
                                 </div>
                               ))}
                             </div>
