@@ -49,7 +49,7 @@ export const ShortcutHandler = () => {
 
   return (
     <Dialog open={isRenameOpen} onOpenChange={setIsRenameOpen}>
-      <DialogContent className="max-w-sm">
+      <DialogContent data-testid="rename-tab-dialog" className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Rename Tab</DialogTitle>
         </DialogHeader>

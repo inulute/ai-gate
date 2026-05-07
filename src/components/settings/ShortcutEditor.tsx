@@ -406,7 +406,7 @@ export const ShortcutEditor = ({ shortcutId, onClose }: ShortcutEditorProps) => 
             )}
 
             {error && (
-              <div className="p-2 bg-destructive/10 border border-destructive/20 rounded-md">
+              <div data-testid="shortcut-recorder-error" className="p-2 bg-destructive/10 border border-destructive/20 rounded-md">
                 <p className="text-sm text-destructive">{error}</p>
               </div>
             )}

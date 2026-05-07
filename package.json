@@ -34,6 +34,10 @@
     "dev": "vite",
     "build": "npx tsc && vite build",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "e2e": "npm run e2e:build && playwright test -c e2e/playwright.config.ts",
+    "e2e:ui": "npm run e2e:build && playwright test -c e2e/playwright.config.ts --ui",
+    "e2e:debug": "npm run e2e:build && PWDEBUG=1 playwright test -c e2e/playwright.config.ts",
+    "e2e:build": "npx tsc -p tsconfig.electron.json && npx tsc -p tsconfig.preload.json",
     "preview": "vite preview",
     "electron:dev": "npx tsc -p tsconfig.electron.json && npx tsc -p tsconfig.preload.json && cross-env NODE_ENV=development ELECTRON=true concurrently \"vite\" \"electron .\"",
     "electron:build": "npx tsc -p tsconfig.electron.json && npx tsc -p tsconfig.preload.json && cross-env NODE_ENV=production ELECTRON=true vite build && electron-builder",
@@ -79,6 +83,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
+    "@playwright/test": "^1.59.1",
     "@types/electron": "^1.4.38",
     "@types/node": "^22.13.4",
     "@types/react": "^19.0.8",

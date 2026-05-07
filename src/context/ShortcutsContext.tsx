@@ -108,6 +108,8 @@ const matchesDefaultPrimaryCombo = (combo: KeyCombo, fallbackCombo: KeyCombo) =>
 
 /** Returns true when stored keys still match a previous default sequence. */
 const shouldUseCurrentDefault = (keys: KeyCombo[], fallback: Shortcut) => {
+  if (fallback.keys.length === 0) return false;
+
   const defaultSequences = [fallback.defaultKeys, ...getPreviousDefaultSequences(fallback.id)];
   return defaultSequences.some(sequence => (
     keys.length === sequence.length &&

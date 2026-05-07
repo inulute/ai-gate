@@ -24,6 +24,7 @@ export const ToolPicker = ({ panelId }: ToolPickerProps) => {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
+          data-testid={`panel-${panelId}-add-tab`}
           className="flex-shrink-0 p-2 hover:bg-secondary/50 transition-colors border-l border-border"
           title="Add new tab"
         >
@@ -37,6 +38,7 @@ export const ToolPicker = ({ panelId }: ToolPickerProps) => {
           <>
             {tools.map((tool) => (
               <DropdownMenuItem
+                data-testid={`panel-${panelId}-tool-${tool.id}`}
                 key={tool.id}
                 onClick={() => handleSelectTool(tool)}
                 className="flex items-center gap-2 cursor-pointer"

@@ -27,4 +27,5 @@ dist-ssr
 
 release-builds
 
+e2e/e2e-results/
 

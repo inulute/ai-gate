@@ -310,6 +310,8 @@ export const AIToolView = ({ tool, instance, isVisible, panelId }: AIToolViewPro
       <CardContent className="flex-1 p-0">
         {tool.type === 'webview' ? (
           <webview
+            data-testid={`webview-${instance.id}`}
+            data-panel-id={panelId ?? undefined}
             ref={webviewRef}
             className="w-full h-full"
             useragent={navigator.userAgent}

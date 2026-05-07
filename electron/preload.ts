@@ -41,6 +41,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   showWindow: () => ipcRenderer.invoke('show-window'),
   setAutostart: (enabled: boolean) => ipcRenderer.invoke('set-autostart', enabled),
   getAppVersion: () => ipcRenderer.sendSync('get-app-version'),
+  isE2E: () => process.env.AI_GATE_E2E === '1',
+  isWindowVisible: () => ipcRenderer.invoke('is-window-visible'),
   setShortcutConfig: (shortcuts: any[]) => ipcRenderer.send('set-shortcut-config', shortcuts),
   setShortcutRecordingActive: (isActive: boolean) => ipcRenderer.send('set-shortcut-recording-active', isActive),
   onShortcut: (cb: (payload: { type: string; shortcutId?: string }) => void) => {

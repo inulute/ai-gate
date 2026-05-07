@@ -47,6 +47,7 @@ const AIToolsContext = createContext<AIToolsContextType | undefined>(undefined);
 export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
   const { settings } = useSettings();
+  const isE2E = window.electronAPI?.isE2E?.() ?? false;
   const [tools, setTools] = useLocalStorage<AITool[]>('ai-tools', []);
   const [toolInstances, setToolInstances] = useLocalStorage<ToolInstance[]>('tool-instances', []);
   const [recentlyClosed, setRecentlyClosed] = useState<ToolInstance[]>([]);
@@ -62,17 +63,18 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
   // Seed default tools on first run
   useEffect(() => {
     if (tools.length === 0) {
+      const toolUrl = (url: string) => isE2E ? 'about:blank' : url;
       const defaults: AITool[] = [
-        { id: 'chatgpt', name: 'ChatGPT', url: 'https://chatgpt.com', type: 'webview', icon: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/openai.svg' },
-        { id: 'gemini', name: 'Gemini', url: 'https://gemini.google.com', type: 'webview', icon: 'https://www.gstatic.com/lamda/images/gemini_sparkle_aurora_33f86dc0c0257da337c63.svg' },
-        { id: 'perplexity', name: 'Perplexity', url: 'https://www.perplexity.ai', type: 'webview', icon: 'https://www.perplexity.ai/favicon.ico' },
-        { id: 'qwen', name: 'Qwen', url: 'https://chat.qwen.ai', type: 'webview', icon: 'https://assets.alicdn.com/g/qwenweb/qwen-webui-fe/0.0.208/favicon.png' },
-        { id: 'claude', name: 'Claude', url: 'https://claude.ai', type: 'webview', icon: 'https://claude.ai/favicon.ico' },
-        { id: 'grok', name: 'Grok', url: 'https://grok.com', type: 'webview', icon: 'https://grok.com/images/favicon-dark.png' },
+        { id: 'chatgpt', name: 'ChatGPT', url: toolUrl('https://chatgpt.com'), type: 'webview', icon: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/openai.svg' },
+        { id: 'gemini', name: 'Gemini', url: toolUrl('https://gemini.google.com'), type: 'webview', icon: 'https://www.gstatic.com/lamda/images/gemini_sparkle_aurora_33f86dc0c0257da337c63.svg' },
+        { id: 'perplexity', name: 'Perplexity', url: toolUrl('https://www.perplexity.ai'), type: 'webview', icon: 'https://www.perplexity.ai/favicon.ico' },
+        { id: 'qwen', name: 'Qwen', url: toolUrl('https://chat.qwen.ai'), type: 'webview', icon: 'https://assets.alicdn.com/g/qwenweb/qwen-webui-fe/0.0.208/favicon.png' },
+        { id: 'claude', name: 'Claude', url: toolUrl('https://claude.ai'), type: 'webview', icon: 'https://claude.ai/favicon.ico' },
+        { id: 'grok', name: 'Grok', url: toolUrl('https://grok.com'), type: 'webview', icon: 'https://grok.com/images/favicon-dark.png' },
       ];
       setTools(defaults);
     }
-  }, []);
+  }, [isE2E]);
 
   // Migration: Assign panelId to existing instances
   useEffect(() => {

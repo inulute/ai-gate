@@ -101,6 +101,7 @@ export const SettingsPanel = ({ isCollapsed = false }: SettingsPanelProps) => {
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button 
+          data-testid="settings-button"
           variant="ghost"
           className={`w-full text-left justify-start font-normal transition-all duration-300 ${
             isCollapsed ? "justify-center p-0 h-10 w-10" : ""
@@ -310,6 +311,7 @@ export const SettingsPanel = ({ isCollapsed = false }: SettingsPanelProps) => {
                   <h3 className="text-sm font-medium">Keyboard Shortcuts</h3>
                   <div className="flex items-center gap-2">
                     <Button
+                      data-testid="shortcut-preset-iterm"
                       variant="outline"
                       size="sm"
                       onClick={() => {
@@ -324,6 +326,7 @@ export const SettingsPanel = ({ isCollapsed = false }: SettingsPanelProps) => {
                       iTerm
                     </Button>
                     <Button
+                      data-testid="shortcut-preset-tmux"
                       variant="outline"
                       size="sm"
                       onClick={() => {
@@ -338,6 +341,7 @@ export const SettingsPanel = ({ isCollapsed = false }: SettingsPanelProps) => {
                       tmux
                     </Button>
                     <Button
+                      data-testid="shortcut-reset"
                       variant="outline"
                       size="sm"
                       onClick={() => {
@@ -371,6 +375,7 @@ export const SettingsPanel = ({ isCollapsed = false }: SettingsPanelProps) => {
                       <div className="space-y-1.5">
                         {categoryShortcuts.map((shortcut) => (
                           <div
+                            data-testid={`shortcut-row-${shortcut.id}`}
                             key={shortcut.id}
                             className="flex items-center justify-between p-2.5 rounded-lg border hover:bg-muted/50"
                           >
@@ -397,6 +402,7 @@ export const SettingsPanel = ({ isCollapsed = false }: SettingsPanelProps) => {
                                 ))}
                               </div>
                               <Button
+                                data-testid={`edit-shortcut-${shortcut.id}`}
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setEditingShortcut(shortcut.id)}

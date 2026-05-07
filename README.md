@@ -175,6 +175,7 @@ npm run electron:dev
 | `npm run build` | Build production web assets |
 | `npm run electron:dev` | Run Electron in development mode |
 | `npm run electron:build` | Build & package production installers |
+| `npm run e2e` | Run local Electron shortcut E2E tests |
 | `npm run package-win` | Package for Windows only |
 | `npm run package-mac` | Package for macOS only |
 | `npm run package-linux` | Package for Linux only |

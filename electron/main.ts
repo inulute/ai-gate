@@ -4,11 +4,16 @@ const fs = require('fs');
 const { exec } = require('child_process');
 
 const isDevelopment = !app.isPackaged;
+const isE2E = process.env.AI_GATE_E2E === '1';
+
+if (process.env.AI_GATE_E2E_USER_DATA_DIR) {
+  app.setPath('userData', process.env.AI_GATE_E2E_USER_DATA_DIR);
+}
 
 // Hardware acceleration enabled for smoother UI performance
 
 // Enforce single instance
-const gotSingleInstanceLock = app.requestSingleInstanceLock();
+const gotSingleInstanceLock = isE2E || app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) {
   app.quit();
 } else {
@@ -322,7 +327,7 @@ function createWindow() {
   console.log('Environment:', process.env.NODE_ENV);
   console.log('isDevelopment:', isDevelopment);
   if (isDevelopment) {
-    const devUrl = 'http://localhost:5173';
+    const devUrl = process.env.AI_GATE_E2E_DEV_SERVER_URL || 'http://localhost:5173';
     console.log('Loading app from:', devUrl);
     mainWindow.loadURL(devUrl);
   } else {
@@ -347,7 +352,7 @@ function createWindow() {
   const shouldStartMinimized = launchedHidden;
 
   // Open the DevTools only in development and not when starting minimized
-  if (isDevelopment && !shouldStartMinimized) {
+  if (isDevelopment && !shouldStartMinimized && !isE2E) {
     mainWindow.webContents.openDevTools();
     try {
       mainWindow.webContents.openDevTools({ mode: 'detach' });
@@ -395,7 +400,7 @@ function createWindow() {
   // Handle window events
   mainWindow.on('close', (event: any) => {
     // Only prevent close if not explicitly quitting
-    if (!global.isQuiting) {
+    if (!isE2E && !global.isQuiting) {
       event.preventDefault();
       // Hide the window instead of closing it
       if (mainWindow && !mainWindow.isDestroyed()) {
@@ -579,6 +584,10 @@ ipcMain.handle('show-window', () => {
   }
 });
 
+ipcMain.handle('is-window-visible', () => {
+  return !!mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible();
+});
+
 // Autostart functionality for Windows
 function setAutoStart(enabled: boolean) {
   if (process.platform === 'win32') {
@@ -642,7 +651,7 @@ app.whenReady().then(() => {
   });
 
   createWindow();
-  createTray();
+  if (!isE2E) createTray();
 });
 
 app.on('window-all-closed', () => {
@@ -657,7 +666,7 @@ app.on('window-all-closed', () => {
 // Prevent the app from quitting when all windows are closed
 app.on('before-quit', (event: any) => {
   // Only allow quitting if explicitly requested from tray menu
-  if (!global.isQuiting) {
+  if (!isE2E && !global.isQuiting) {
     event.preventDefault();
     // Hide the window instead of quitting
     if (mainWindow && !mainWindow.isDestroyed()) {
