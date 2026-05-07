@@ -27,7 +27,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getFaviconUrl } from '@/lib/favicon';
-import useFavicon from '@/hooks/useFavicon';
 import { type LayoutType, type AITool } from '@/types/AITool';
 import { AddToolForm } from '../forms/AddToolForm';
 import { EditToolForm } from '../forms/EditToolForm';
@@ -55,23 +54,39 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Extracted component so useFavicon is called at component level (not inside a .map() IIFE)
+// Extracted component so icon fallback state is scoped per tool.
 const ToolIcon = ({ url, icon }: { url: string; icon?: string }) => {
-  const iconUrl = useFavicon(url, icon);
+  const [iconUrl, setIconUrl] = useState(icon || getFaviconUrl(url) || '');
+  const [showFallback, setShowFallback] = useState(false);
+
+  useEffect(() => {
+    setIconUrl(icon || getFaviconUrl(url) || '');
+    setShowFallback(false);
+  }, [icon, url]);
+
+  /** Falls back to the provider favicon when a saved sidebar icon fails. */
+  const handleIconError = () => {
+    const fallbackUrl = getFaviconUrl(url) || '';
+    if (fallbackUrl && iconUrl !== fallbackUrl) {
+      setIconUrl(fallbackUrl);
+      return;
+    }
+
+    setShowFallback(true);
+  };
+
   return (
     <div className="w-6 h-6 relative shrink-0 flex items-center justify-center">
-      <img
-        src={iconUrl || getFaviconUrl(url) || ''}
-        alt=""
-        className="w-5 h-5 rounded-full object-cover border border-border bg-card"
-        onError={(e) => {
-          const target = e.currentTarget as HTMLImageElement;
-          target.style.display = 'none';
-          const fallback = target.nextElementSibling as HTMLElement | null;
-          if (fallback) fallback.classList.remove('hidden');
-        }}
-      />
-      <Bot className="h-4 w-4 hidden" />
+      {showFallback ? (
+        <Bot className="h-4 w-4" />
+      ) : (
+        <img
+          src={iconUrl}
+          alt=""
+          className="w-5 h-5 rounded-full object-cover border border-border bg-card"
+          onError={handleIconError}
+        />
+      )}
     </div>
   );
 };

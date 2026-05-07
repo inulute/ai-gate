@@ -92,11 +92,6 @@ export const AIToolView = ({ tool, instance, isVisible, panelId }: AIToolViewPro
       updateToolState(instance.id, { isLoading: false });
     };
     
-    const handleNewWindow = () => {
-      // All window.open() calls are handled by main process setWindowOpenHandler
-      // No need to handle here
-    };
-    
     const updatePageTitle = () => {
       try {
         const wv: any = webview;
@@ -155,7 +150,6 @@ export const AIToolView = ({ tool, instance, isVisible, panelId }: AIToolViewPro
     webview.addEventListener('did-start-loading', handleStartLoad as any);
     webview.addEventListener('focus', markPanelActive as any);
     webview.addEventListener('did-stop-loading', handleStopLoad as any);
-    webview.addEventListener('new-window', handleNewWindow as any);
     webview.addEventListener('dom-ready', handleDomReady as any);
     webview.addEventListener('did-navigate', handleNavigate as any);
     webview.addEventListener('did-navigate-in-page', handleNavigate as any);
@@ -165,7 +159,6 @@ export const AIToolView = ({ tool, instance, isVisible, panelId }: AIToolViewPro
       webview.removeEventListener('did-start-loading', handleStartLoad as any);
       webview.removeEventListener('focus', markPanelActive as any);
       webview.removeEventListener('did-stop-loading', handleStopLoad as any);
-      webview.removeEventListener('new-window', handleNewWindow as any);
       webview.removeEventListener('dom-ready', handleDomReady as any);
       webview.removeEventListener('did-navigate', handleNavigate as any);
       webview.removeEventListener('did-navigate-in-page', handleNavigate as any);
@@ -314,6 +307,7 @@ export const AIToolView = ({ tool, instance, isVisible, panelId }: AIToolViewPro
             data-panel-id={panelId ?? undefined}
             ref={webviewRef}
             className="w-full h-full"
+            allowpopups
             useragent={navigator.userAgent}
             title={tool.name}
             webpreferences="contextIsolation=yes, nodeIntegration=no, nativeWindowOpen=yes"

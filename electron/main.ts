@@ -80,6 +80,11 @@ const codeKeyLabels = new Map([
   ['Space', 'Space'],
 ]);
 
+/** Returns true when a provider webview should be allowed to open an in-app auth popup. */
+const isProviderAuthPopupUrl = (url: string) => {
+  return /^https:\/\/accounts\.google\.com\//i.test(url);
+};
+
 // Keep this local copy paired with src/lib/shortcutUtils.ts. The main process
 // cannot rely on renderer shortcut handling because webviews consume keys first.
 
@@ -644,7 +649,26 @@ app.whenReady().then(() => {
 
     // For all web contents (including webviews)
     // Open all window.open() calls in external browser
-    contents.setWindowOpenHandler(({ url }: { url: string }) => {
+    contents.setWindowOpenHandler((details: any) => {
+      const { url } = details;
+      if (contents.getType?.() === 'webview' && isProviderAuthPopupUrl(url)) {
+        return {
+          action: 'allow',
+          overrideBrowserWindowOptions: {
+            width: 520,
+            height: 720,
+            title: 'Sign in',
+            autoHideMenuBar: true,
+            webPreferences: {
+              nodeIntegration: false,
+              contextIsolation: true,
+              nativeWindowOpen: true,
+              partition: 'persist:webtool',
+            },
+          },
+        };
+      }
+
       shell.openExternal(url);
       return { action: 'deny' };
     });
