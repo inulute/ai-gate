@@ -13,7 +13,7 @@ interface PanelBounds {
 }
 
 export const WorkspaceGrid = () => {
-  const { layout, toolInstances, activePanelTabs, getToolById } = useAITools();
+  const { layout, toolInstances, activePanelTabs, getToolById, setActivePanel } = useAITools();
 
   const layoutNumber = parseInt(layout);
   const allPanels = [0, 1, 2];
@@ -152,20 +152,20 @@ export const WorkspaceGrid = () => {
           if (!tool) return null;
 
           // Find which VISIBLE panel this instance is active in
-          let activePanelId: number | null = null;
+          let visiblePanelId: number | null = null;
           for (let i = 0; i < layoutNumber; i++) {
             if (activePanelTabs[i] === instance.id) {
-              activePanelId = i;
+              visiblePanelId = i;
               break;
             }
           }
 
-          const isActive = activePanelId !== null;
-          const bounds = activePanelId !== null ? panelBounds[activePanelId] : null;
+          const isActive = visiblePanelId !== null;
+          const bounds = visiblePanelId !== null ? panelBounds[visiblePanelId] : null;
 
           // Only use CSS transitions when repositioning between panels (both have valid bounds).
           // Skip transitions when appearing from hidden (0→nonzero) to avoid "growing from nothing".
-          const prevBounds = activePanelId !== null ? prevBoundsRef.current[activePanelId] : null;
+          const prevBounds = visiblePanelId !== null ? prevBoundsRef.current[visiblePanelId] : null;
           const hadValidBounds = prevBounds && prevBounds.width > 0 && prevBounds.height > 0;
           const hasValidBounds = bounds && bounds.width > 0 && bounds.height > 0;
           const useTransition = hadValidBounds && hasValidBounds;
@@ -173,6 +173,9 @@ export const WorkspaceGrid = () => {
           return (
             <div
               key={instance.id}
+              onMouseDown={() => {
+                if (visiblePanelId !== null) setActivePanel(visiblePanelId);
+              }}
               style={{
                 position: 'absolute',
                 // Active webviews: positioned exactly over their panel's content area
@@ -196,6 +199,7 @@ export const WorkspaceGrid = () => {
                 tool={tool}
                 instance={instance}
                 isVisible={!!isActive}
+                panelId={visiblePanelId}
               />
             </div>
           );

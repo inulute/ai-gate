@@ -11,7 +11,7 @@ interface PanelProps {
 }
 
 export const Panel = ({ panelId, contentAreaRef }: PanelProps) => {
-  const { getInstancesByPanel, getActivePanelInstance, setActivePanelTab, highlightedPanelId, toolInstances, activePanelTabs } = useAITools();
+  const { getInstancesByPanel, getActivePanelInstance, setActivePanelTab, setActivePanel, highlightedPanelId, toolInstances, activePanelTabs } = useAITools();
   const { settings } = useSettings();
   const panelInstances = getInstancesByPanel(panelId);
 
@@ -42,13 +42,20 @@ export const Panel = ({ panelId, contentAreaRef }: PanelProps) => {
   if (shouldShowEmptyState) {
     return (
       <div
+        data-testid={`panel-${panelId}`}
+        onMouseDown={() => setActivePanel(panelId)}
+        onFocus={() => setActivePanel(panelId)}
         className={`h-full border rounded-lg flex flex-col transition-all duration-300 ${
           isHighlighted
             ? 'border-primary premium-glow ring-4 ring-primary/40'
             : 'border-border'
         }`}
       >
-        <div ref={contentAreaRef} className="flex-1 flex items-center justify-center text-muted-foreground bg-secondary/50 dark:bg-secondary/20">
+        <div
+          ref={contentAreaRef}
+          data-testid={`panel-${panelId}-content`}
+          className="flex-1 flex items-center justify-center text-muted-foreground bg-secondary/50 dark:bg-secondary/20"
+        >
           Select an AI tool from sidebar
         </div>
       </div>
@@ -57,6 +64,9 @@ export const Panel = ({ panelId, contentAreaRef }: PanelProps) => {
 
   return (
     <div
+      data-testid={`panel-${panelId}`}
+      onMouseDown={() => setActivePanel(panelId)}
+      onFocus={() => setActivePanel(panelId)}
       className={`h-full border rounded-lg flex flex-col overflow-hidden transition-all duration-100 ${
         isHighlighted
           ? 'border-primary premium-glow ring-4 ring-primary/40'
@@ -71,7 +81,7 @@ export const Panel = ({ panelId, contentAreaRef }: PanelProps) => {
       />
 
       {/* Content area - webviews are rendered globally by WorkspaceGrid */}
-      <div ref={contentAreaRef} className="flex-1 relative overflow-hidden" />
+      <div ref={contentAreaRef} data-testid={`panel-${panelId}-content`} className="flex-1 relative overflow-hidden" />
     </div>
   );
 };

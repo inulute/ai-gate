@@ -10,6 +10,7 @@ interface AIToolsContextType {
   toolInstances: ToolInstance[];
   layout: LayoutType;
   activePanelTabs: Record<number, string>; // Track active tab per panel
+  activePanelId: number;
   highlightedPanelId: number | null; // Track which panel should be highlighted
   addTool: (tool: AITool) => void;
   updateTool: (tool: AITool) => void;
@@ -18,6 +19,7 @@ interface AIToolsContextType {
   setLayout: (layout: LayoutType) => void;
   closeToolInstance: (instanceId: string) => void;
   closeAllInstances: () => void;
+  restoreLastClosed: () => void;
   updateToolInstance: (instanceId: string, updates: Partial<ToolInstance>) => void;
   updateToolState: (instanceId: string, state: Partial<ToolState>) => void;
   pinToolInstance: (instanceId: string) => void;
@@ -31,6 +33,7 @@ interface AIToolsContextType {
   moveInstanceToPanel: (instanceId: string, targetPanelId: number, position?: number) => void;
   reorderTabInPanel: (panelId: number, fromIndex: number, toIndex: number) => void;
   setActivePanelTab: (panelId: number, instanceId: string) => void;
+  setActivePanel: (panelId: number) => void;
   duplicateInstance: (instanceId: string, targetPanelId?: number) => void;
   renameInstance: (instanceId: string, customTitle: string) => void;
   createInstanceInPanel: (tool: AITool, targetPanelId: number) => void;
@@ -44,10 +47,12 @@ const AIToolsContext = createContext<AIToolsContextType | undefined>(undefined);
 export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
   const { settings } = useSettings();
+  const isE2E = window.electronAPI?.isE2E?.() ?? false;
   const [tools, setTools] = useLocalStorage<AITool[]>('ai-tools', []);
   const [toolInstances, setToolInstances] = useLocalStorage<ToolInstance[]>('tool-instances', []);
   const [recentlyClosed, setRecentlyClosed] = useState<ToolInstance[]>([]);
   const [activePanelTabs, setActivePanelTabs] = useLocalStorage<Record<number, string>>('active-panel-tabs', {});
+  const [activePanelId, setActivePanelId] = useLocalStorage<number>('active-panel-id', 0);
   const [highlightedPanelId, setHighlightedPanelId] = useState<number | null>(null);
 
   const [layout, setLayoutState] = useLocalStorage<LayoutType>(
@@ -58,17 +63,18 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
   // Seed default tools on first run
   useEffect(() => {
     if (tools.length === 0) {
+      const toolUrl = (url: string) => isE2E ? 'about:blank' : url;
       const defaults: AITool[] = [
-        { id: 'chatgpt', name: 'ChatGPT', url: 'https://chatgpt.com', type: 'webview', icon: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/openai.svg' },
-        { id: 'gemini', name: 'Gemini', url: 'https://gemini.google.com', type: 'webview', icon: 'https://www.gstatic.com/lamda/images/gemini_sparkle_aurora_33f86dc0c0257da337c63.svg' },
-        { id: 'perplexity', name: 'Perplexity', url: 'https://www.perplexity.ai', type: 'webview', icon: 'https://www.perplexity.ai/favicon.ico' },
-        { id: 'qwen', name: 'Qwen', url: 'https://chat.qwen.ai', type: 'webview', icon: 'https://assets.alicdn.com/g/qwenweb/qwen-webui-fe/0.0.208/favicon.png' },
-        { id: 'claude', name: 'Claude', url: 'https://claude.ai', type: 'webview', icon: 'https://claude.ai/favicon.ico' },
-        { id: 'grok', name: 'Grok', url: 'https://grok.com', type: 'webview', icon: 'https://grok.com/images/favicon-dark.png' },
+        { id: 'chatgpt', name: 'ChatGPT', url: toolUrl('https://chatgpt.com'), type: 'webview', icon: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/openai.svg' },
+        { id: 'gemini', name: 'Gemini', url: toolUrl('https://gemini.google.com'), type: 'webview', icon: 'https://www.gstatic.com/lamda/images/gemini_sparkle_aurora_33f86dc0c0257da337c63.svg' },
+        { id: 'perplexity', name: 'Perplexity', url: toolUrl('https://www.perplexity.ai'), type: 'webview', icon: 'https://www.perplexity.ai/favicon.ico' },
+        { id: 'qwen', name: 'Qwen', url: toolUrl('https://chat.qwen.ai'), type: 'webview', icon: 'https://assets.alicdn.com/g/qwenweb/qwen-webui-fe/0.0.208/favicon.png' },
+        { id: 'claude', name: 'Claude', url: toolUrl('https://claude.ai'), type: 'webview', icon: 'https://claude.ai/favicon.ico' },
+        { id: 'grok', name: 'Grok', url: toolUrl('https://grok.com'), type: 'webview', icon: 'https://grok.com/images/favicon-dark.png' },
       ];
       setTools(defaults);
     }
-  }, []);
+  }, [isE2E]);
 
   // Migration: Assign panelId to existing instances
   useEffect(() => {
@@ -216,25 +222,8 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
     });
   };
 
-  const selectTool = (tool: AITool, createNewInstance = false) => {
-    if (!createNewInstance) {
-      const existingInstance = toolInstances.find(instance => instance.toolId === tool.id);
-      if (existingInstance) {
-        // Focus the instance and highlight the panel (regardless of visibility)
-        // In synced tabs mode, the tab will be visible in all panels anyway
-        focusInstance(existingInstance.id);
-        setActivePanelTab(existingInstance.panelId, existingInstance.id);
-        highlightPanel(existingInstance.panelId);
-
-        toast({
-          title: "Already Opened",
-          description: `${tool.name} is already open in panel ${existingInstance.panelId + 1}.`,
-          duration: 2000
-        });
-        return;
-      }
-    }
-
+  const selectTool = (tool: AITool) => {
+    // Always create a new instance — multiple tabs of the same provider are intentional.
     // CRITICAL: Expand layout FIRST before calculating target panel
     // This ensures panelId calculations are based on the correct layout
     const unpinnedInstances = toolInstances.filter(instance => !instance.isPinned);
@@ -257,42 +246,30 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
       setLayoutState(targetLayout);
     }
 
-    // Find target panel using the FINAL layout (after expansion)
+    // Find target panel: first empty, or least populated
     let targetPanelId = 0;
     let positionInPanel = 0;
     const layoutNumber = parseInt(targetLayout);
 
-    if (createNewInstance) {
-      // Ctrl+Click: add to same panel as existing instance of this tool
-      const existingInstance = toolInstances.find(instance => instance.toolId === tool.id);
-      if (existingInstance) {
-        targetPanelId = existingInstance.panelId;
-        const panelInstances = toolInstances.filter(inst => inst.panelId === targetPanelId);
-        positionInPanel = panelInstances.length;
+    let foundEmptyPanel = false;
+    for (let i = 0; i < layoutNumber; i++) {
+      const panelInstances = toolInstances.filter(inst => inst.panelId === i);
+      if (panelInstances.length === 0) {
+        targetPanelId = i;
+        positionInPanel = 0;
+        foundEmptyPanel = true;
+        break;
       }
-    } else {
-      // Regular click: find first empty panel, or least populated panel
-      let foundEmptyPanel = false;
+    }
+
+    if (!foundEmptyPanel) {
+      let minCount = Infinity;
       for (let i = 0; i < layoutNumber; i++) {
         const panelInstances = toolInstances.filter(inst => inst.panelId === i);
-        if (panelInstances.length === 0) {
+        if (panelInstances.length < minCount) {
+          minCount = panelInstances.length;
           targetPanelId = i;
-          positionInPanel = 0;
-          foundEmptyPanel = true;
-          break;
-        }
-      }
-
-      // If no empty panel found, use the panel with least instances
-      if (!foundEmptyPanel) {
-        let minCount = Infinity;
-        for (let i = 0; i < layoutNumber; i++) {
-          const panelInstances = toolInstances.filter(inst => inst.panelId === i);
-          if (panelInstances.length < minCount) {
-            minCount = panelInstances.length;
-            targetPanelId = i;
-            positionInPanel = panelInstances.length;
-          }
+          positionInPanel = panelInstances.length;
         }
       }
     }
@@ -395,6 +372,20 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
     });
   };
 
+  const restoreLastClosed = () => {
+    if (recentlyClosed.length === 0) return;
+
+    const lastClosed = recentlyClosed[0];
+    setToolInstances(current => [...current, lastClosed]);
+    setRecentlyClosed(prev => prev.slice(1));
+
+    toast({
+      title: "Tab Restored",
+      description: `${lastClosed.title} restored.`,
+      duration: 1500
+    });
+  };
+
   const updateToolInstance = (instanceId: string, updates: Partial<ToolInstance>) => {
     setToolInstances(current => 
       current.map(instance => 
@@ -455,51 +446,9 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   const getActiveInstance = () => {
-    return toolInstances
+    return [...toolInstances]
       .sort((a, b) => new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime())[0];
   };
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === 'z' && recentlyClosed.length > 0) {
-        e.preventDefault();
-        const lastClosed = recentlyClosed[0];
-        setToolInstances(current => [...current, lastClosed]);
-        setRecentlyClosed(prev => prev.slice(1));
-        
-        toast({
-          title: "Tab Restored",
-          description: `${lastClosed.title} restored.`,
-          duration: 1500
-        });
-      }
-      
-      if (e.ctrlKey && e.key === 'w') {
-        e.preventDefault();
-        const activeInstance = getActiveInstance();
-        if (activeInstance) {
-          closeToolInstance(activeInstance.id);
-        }
-      }
-      
-      if (e.ctrlKey && e.shiftKey && e.key === 'w') {
-        e.preventDefault();
-        closeAllInstances();
-      }
-      
-      if (e.altKey && e.key >= '1' && e.key <= '9') {
-        e.preventDefault();
-        const index = parseInt(e.key) - 1;
-        const instance = toolInstances[index];
-        if (instance) {
-          focusInstance(instance.id);
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [toolInstances, recentlyClosed]);
 
   // Cleanup: Validate activePanelTabs when instances or layout change
   // NOTE: activePanelTabs is NOT in deps to prevent infinite loops.
@@ -619,6 +568,7 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   const setActivePanelTab = (panelId: number, instanceId: string) => {
+    setActivePanelId(panelId);
     setActivePanelTabs(current => {
       const updated = { ...current, [panelId]: instanceId };
 
@@ -644,6 +594,10 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
 
       return updated;
     });
+  };
+
+  const setActivePanel = (panelId: number) => {
+    setActivePanelId(panelId);
   };
 
   const duplicateInstance = (instanceId: string, targetPanelId?: number) => {
@@ -676,30 +630,11 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   const renameInstance = (instanceId: string, customTitle: string) => {
-    updateToolInstance(instanceId, { customTitle });
+    updateToolInstance(instanceId, { customTitle: customTitle.trim() || undefined });
   };
 
   const createInstanceInPanel = (tool: AITool, requestedPanelId: number) => {
-    // Check if an instance of this tool already exists in the REQUESTED panel
-    // Allow multiple instances of the same tool - only check within the requested panel
-    const existingInstanceInPanel = toolInstances.find(
-      inst => inst.toolId === tool.id && inst.panelId === requestedPanelId
-    );
-
-    if (existingInstanceInPanel) {
-      // If it exists in this panel, just focus it
-      focusInstance(existingInstanceInPanel.id);
-      setActivePanelTab(requestedPanelId, existingInstanceInPanel.id);
-      highlightPanel(requestedPanelId);
-
-      toast({
-        title: "Already Opened",
-        description: `${tool.name} is already open in this panel.`,
-        duration: 2000
-      });
-      return;
-    }
-
+    // Always create a new tab — we explicitly want multiple tabs of the same provider.
     // Use the requested panel ID - respect user's explicit choice
     // Only apply smart distribution if the requested panel is invalid (out of bounds)
     const layoutNumber = parseInt(layout);
@@ -798,6 +733,7 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
     toolInstances,
     layout,
     activePanelTabs,
+    activePanelId,
     highlightedPanelId,
     addTool,
     updateTool,
@@ -806,6 +742,7 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
     setLayout,
     closeToolInstance,
     closeAllInstances,
+    restoreLastClosed,
     updateToolInstance,
     updateToolState,
     pinToolInstance,
@@ -819,6 +756,7 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
     moveInstanceToPanel,
     reorderTabInPanel,
     setActivePanelTab,
+    setActivePanel,
     duplicateInstance,
     renameInstance,
     createInstanceInPanel,
@@ -830,6 +768,7 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
     toolInstances,
     layout,
     activePanelTabs,
+    activePanelId,
     highlightedPanelId,
     settings.syncedTabs,
   ]);

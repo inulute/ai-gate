@@ -1,10 +1,12 @@
 // src/components/workspace/Tab.tsx
-import { X } from 'lucide-react';
+import { Bot, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { ToolInstance, AITool } from '@/types/AITool';
 import { useAITools } from '@/context/AIToolsContext';
 import { useSettings } from '@/context/SettingsContext';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { getFaviconUrl } from '@/lib/favicon';
 
 interface TabProps {
   instance: ToolInstance;
@@ -17,6 +19,8 @@ interface TabProps {
 export const Tab = ({ instance, tool, isActive, onClose, panelId }: TabProps) => {
   const { setActivePanelTab, highlightPanel } = useAITools();
   const { settings } = useSettings();
+  const [tabIconUrl, setTabIconUrl] = useState(tool.icon || getFaviconUrl(tool.url) || '');
+  const [showIconFallback, setShowIconFallback] = useState(false);
 
   const {
     attributes,
@@ -37,6 +41,11 @@ export const Tab = ({ instance, tool, isActive, onClose, panelId }: TabProps) =>
   };
 
   const displayTitle = instance.customTitle || instance.title;
+
+  useEffect(() => {
+    setTabIconUrl(tool.icon || getFaviconUrl(tool.url) || '');
+    setShowIconFallback(false);
+  }, [tool.icon, tool.url]);
 
   const handleClick = (e: React.MouseEvent) => {
     // Prevent drag from interfering with click
@@ -62,11 +71,26 @@ export const Tab = ({ instance, tool, isActive, onClose, panelId }: TabProps) =>
     }
   };
 
+  /** Falls back to the provider favicon when a saved tab icon fails. */
+  const handleIconError = () => {
+    const fallbackUrl = getFaviconUrl(tool.url) || '';
+    if (fallbackUrl && tabIconUrl !== fallbackUrl) {
+      setTabIconUrl(fallbackUrl);
+      return;
+    }
+
+    setShowIconFallback(true);
+  };
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       {...attributes}
+      data-testid={`tab-${instance.id}`}
+      data-tool-id={instance.toolId}
+      data-panel-id={panelId}
+      data-active={isActive ? 'true' : 'false'}
       className={`
         group relative flex items-center gap-2 px-3 py-2 min-w-[120px] max-w-[200px]
         border-r border-border transition-all
@@ -83,11 +107,16 @@ export const Tab = ({ instance, tool, isActive, onClose, panelId }: TabProps) =>
         className="flex items-center gap-2 flex-1 cursor-pointer min-w-0"
       >
         {/* Tool Icon */}
-        <img
-          src={tool.icon}
-          alt={tool.name}
-          className="w-4 h-4 flex-shrink-0"
-        />
+        {showIconFallback ? (
+          <Bot className="w-4 h-4 flex-shrink-0" />
+        ) : (
+          <img
+            src={tabIconUrl}
+            alt={tool.name}
+            className="w-4 h-4 flex-shrink-0"
+            onError={handleIconError}
+          />
+        )}
 
         {/* Tab Title */}
         <span className="flex-1 truncate text-sm font-medium">

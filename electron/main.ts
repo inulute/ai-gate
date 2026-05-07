@@ -1,14 +1,19 @@
-const { app, BrowserWindow, session, shell, Menu, globalShortcut, Tray, nativeImage, ipcMain } = require('electron');
+const { app, BrowserWindow, session, shell, Menu, Tray, nativeImage, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
 
 const isDevelopment = !app.isPackaged;
+const isE2E = process.env.AI_GATE_E2E === '1';
+
+if (process.env.AI_GATE_E2E_USER_DATA_DIR) {
+  app.setPath('userData', process.env.AI_GATE_E2E_USER_DATA_DIR);
+}
 
 // Hardware acceleration enabled for smoother UI performance
 
 // Enforce single instance
-const gotSingleInstanceLock = app.requestSingleInstanceLock();
+const gotSingleInstanceLock = isE2E || app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) {
   app.quit();
 } else {
@@ -29,13 +34,214 @@ if (!gotSingleInstanceLock) {
 let mainWindow: any = null;
 let tray: any = null;
 
+type ShortcutMode = 'standard' | 'prefix';
+type KeyCombo = string[];
+
+interface ShortcutIpcConfig {
+  id: string;
+  name: string;
+  mode: ShortcutMode;
+  keys: KeyCombo[];
+}
+
+interface ActiveShortcutPrefix {
+  shortcuts: ShortcutIpcConfig[];
+  nextStep: number;
+}
+
 // Global flag to track if app is quitting
 declare global {
   var isQuiting: boolean;
+  var shortcutConfig: ShortcutIpcConfig[];
+  var shortcutRecordingActive: boolean;
+  var activeShortcutPrefix: ActiveShortcutPrefix | null;
+  var shortcutPrefixTimer: any;
 }
 
 // Initialize the global flag
 global.isQuiting = false;
+global.shortcutConfig = [];
+global.shortcutRecordingActive = false;
+global.activeShortcutPrefix = null;
+global.shortcutPrefixTimer = null;
+
+const codeKeyLabels = new Map([
+  ['Backquote', '`'],
+  ['Minus', '-'],
+  ['Equal', '='],
+  ['BracketLeft', '['],
+  ['BracketRight', ']'],
+  ['Backslash', '\\'],
+  ['Semicolon', ';'],
+  ['Quote', "'"],
+  ['Comma', ','],
+  ['Period', '.'],
+  ['Slash', '/'],
+  ['Space', 'Space'],
+]);
+
+/** Returns true when a provider webview should be allowed to open an in-app auth popup. */
+const isProviderAuthPopupUrl = (url: string) => {
+  return /^https:\/\/accounts\.google\.com\//i.test(url);
+};
+
+// Keep this local copy paired with src/lib/shortcutUtils.ts. The main process
+// cannot rely on renderer shortcut handling because webviews consume keys first.
+
+/** Normalizes Electron input key names to shortcut setting labels. */
+const normalizeShortcutKey = (key: string) => {
+  const lowerKey = key.toLowerCase();
+  if (lowerKey === 'control' || lowerKey === 'ctrl') return 'Ctrl';
+  if (lowerKey === 'command' || lowerKey === 'cmd' || lowerKey === 'meta') return 'Meta';
+  if (lowerKey === 'option' || lowerKey === 'alt') return 'Alt';
+  if (lowerKey === 'shift') return 'Shift';
+  if (lowerKey === 'mod') return 'Mod';
+  if (key === ' ') return 'Space';
+  return key.length === 1 ? lowerKey : key;
+};
+
+/** Returns the unshifted physical key label for printable Electron input. */
+const shortcutKeyFromInput = (input: any) => {
+  const code = input.code || '';
+  if (/^Digit[0-9]$/.test(code)) return code.replace('Digit', '');
+  if (/^Numpad[0-9]$/.test(code)) return code.replace('Numpad', '');
+  if (/^Key[A-Z]$/.test(code)) return code.replace('Key', '').toLowerCase();
+
+  return normalizeShortcutKey(codeKeyLabels.get(code) || input.key || '');
+};
+
+/** Returns true when a key label is a shortcut modifier. */
+const isShortcutModifier = (key: string) => {
+  return ['Mod', 'Ctrl', 'Meta', 'Alt', 'Shift'].includes(normalizeShortcutKey(key));
+};
+
+/** Checks whether Electron input matches a stored shortcut combo. */
+const shortcutComboMatchesInput = (combo: KeyCombo, input: any, allowExtraMod = false) => {
+  const normalizedCombo = combo.map(normalizeShortcutKey);
+  const wantsMod = normalizedCombo.includes('Mod');
+  const wantsCtrl = normalizedCombo.includes('Ctrl');
+  const wantsMeta = normalizedCombo.includes('Meta');
+  const wantsAlt = normalizedCombo.includes('Alt');
+  const wantsShift = normalizedCombo.includes('Shift');
+  const expectedKey = normalizedCombo.find(key => !isShortcutModifier(key));
+  const inputKey = shortcutKeyFromInput(input);
+
+  if (wantsMod) {
+    if (!input.control && !input.meta) return false;
+  } else if (!allowExtraMod) {
+    if (!!input.control !== wantsCtrl) return false;
+    if (!!input.meta !== wantsMeta) return false;
+  } else if (wantsCtrl || wantsMeta) {
+    if (!!input.control !== wantsCtrl) return false;
+    if (!!input.meta !== wantsMeta) return false;
+  }
+
+  if (!!input.alt !== wantsAlt) return false;
+  if (!!input.shift !== wantsShift) return false;
+  return !!expectedKey && expectedKey.toLowerCase() === inputKey.toLowerCase();
+};
+
+/** Sends a shortcut payload to the renderer process. */
+const sendShortcutPayload = (payload: any) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('shortcut', payload);
+  }
+};
+
+/** Clears any pending prefix shortcut sequence. */
+const clearShortcutPrefix = () => {
+  global.activeShortcutPrefix = null;
+  if (global.shortcutPrefixTimer) {
+    clearTimeout(global.shortcutPrefixTimer);
+    global.shortcutPrefixTimer = null;
+  }
+};
+
+/** Starts waiting for the next key in a prefix shortcut sequence. */
+const activateShortcutPrefix = (shortcuts: ShortcutIpcConfig[]) => {
+  global.activeShortcutPrefix = { shortcuts, nextStep: 1 };
+  if (global.shortcutPrefixTimer) clearTimeout(global.shortcutPrefixTimer);
+  global.shortcutPrefixTimer = setTimeout(() => {
+    clearShortcutPrefix();
+    sendShortcutPayload({ type: 'prefix-cancel' });
+  }, 2000);
+  sendShortcutPayload({ type: 'prefix-active', shortcutId: shortcuts[0]?.id });
+};
+
+/** Handles configurable shortcuts before Electron webviews consume them. */
+const handleShortcutInput = (event: any, input: any) => {
+  if (input.type !== 'keyDown') return;
+  if (global.shortcutRecordingActive) return;
+
+  const key = normalizeShortcutKey(input.key || '');
+  const isPrimaryOnly = (!!input.control || !!input.meta) && !input.shift && !input.alt;
+  const isPrimaryShift = (!!input.control || !!input.meta) && !!input.shift && !input.alt;
+  const shouldNeutralizeNativeClose = key === 'w' && (isPrimaryOnly || isPrimaryShift);
+
+  const activePrefix = global.activeShortcutPrefix;
+  if (activePrefix) {
+    if (key === 'Escape') {
+      event.preventDefault();
+      clearShortcutPrefix();
+      sendShortcutPayload({ type: 'prefix-cancel' });
+      return;
+    }
+
+    const matchingShortcuts = activePrefix.shortcuts.filter(shortcut => {
+      const expectedCombo = shortcut.keys[activePrefix.nextStep];
+      return expectedCombo && shortcutComboMatchesInput(expectedCombo, input, true);
+    });
+
+    if (matchingShortcuts.length > 0) {
+      event.preventDefault();
+      const nextStep = activePrefix.nextStep + 1;
+      const completedShortcut = matchingShortcuts.find(shortcut => nextStep >= shortcut.keys.length);
+      if (completedShortcut) {
+        clearShortcutPrefix();
+        sendShortcutPayload({ type: 'action', shortcutId: completedShortcut.id });
+      } else {
+        global.activeShortcutPrefix = { shortcuts: matchingShortcuts, nextStep };
+      }
+      return;
+    }
+
+    clearShortcutPrefix();
+    sendShortcutPayload({ type: 'prefix-cancel' });
+  }
+
+  const prefixShortcuts = global.shortcutConfig.filter(shortcut =>
+    shortcut.mode === 'prefix' &&
+    shortcut.keys.length > 0 &&
+    shortcutComboMatchesInput(shortcut.keys[0], input)
+  );
+
+  if (prefixShortcuts.length > 0) {
+    event.preventDefault();
+    const completedShortcut = prefixShortcuts.find(shortcut => shortcut.keys.length === 1);
+    if (completedShortcut) {
+      sendShortcutPayload({ type: 'action', shortcutId: completedShortcut.id });
+    } else {
+      activateShortcutPrefix(prefixShortcuts.filter(shortcut => shortcut.keys.length > 1));
+    }
+    return;
+  }
+
+  const standardShortcut = global.shortcutConfig.find(shortcut =>
+    shortcut.mode === 'standard' &&
+    shortcut.keys.length === 1 &&
+    shortcutComboMatchesInput(shortcut.keys[0], input)
+  );
+
+  if (standardShortcut) {
+    event.preventDefault();
+    sendShortcutPayload({ type: 'action', shortcutId: standardShortcut.id });
+    return;
+  }
+
+  if (shouldNeutralizeNativeClose) {
+    event.preventDefault();
+  }
+};
 
 // Parse CLI flags once
 const launchArgs = process.argv.slice(1);
@@ -126,7 +332,7 @@ function createWindow() {
   console.log('Environment:', process.env.NODE_ENV);
   console.log('isDevelopment:', isDevelopment);
   if (isDevelopment) {
-    const devUrl = 'http://localhost:5173';
+    const devUrl = process.env.AI_GATE_E2E_DEV_SERVER_URL || 'http://localhost:5173';
     console.log('Loading app from:', devUrl);
     mainWindow.loadURL(devUrl);
   } else {
@@ -151,7 +357,7 @@ function createWindow() {
   const shouldStartMinimized = launchedHidden;
 
   // Open the DevTools only in development and not when starting minimized
-  if (isDevelopment && !shouldStartMinimized) {
+  if (isDevelopment && !shouldStartMinimized && !isE2E) {
     mainWindow.webContents.openDevTools();
     try {
       mainWindow.webContents.openDevTools({ mode: 'detach' });
@@ -199,7 +405,7 @@ function createWindow() {
   // Handle window events
   mainWindow.on('close', (event: any) => {
     // Only prevent close if not explicitly quitting
-    if (!global.isQuiting) {
+    if (!isE2E && !global.isQuiting) {
       event.preventDefault();
       // Hide the window instead of closing it
       if (mainWindow && !mainWindow.isDestroyed()) {
@@ -383,6 +589,10 @@ ipcMain.handle('show-window', () => {
   }
 });
 
+ipcMain.handle('is-window-visible', () => {
+  return !!mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible();
+});
+
 // Autostart functionality for Windows
 function setAutoStart(enabled: boolean) {
   if (process.platform === 'win32') {
@@ -419,39 +629,53 @@ ipcMain.on('get-app-version', (event: any) => {
   event.returnValue = app.getVersion();
 });
 
+ipcMain.on('set-shortcut-config', (_event: any, shortcuts: ShortcutIpcConfig[]) => {
+  global.shortcutConfig = Array.isArray(shortcuts) ? shortcuts : [];
+  clearShortcutPrefix();
+});
+
+ipcMain.on('set-shortcut-recording-active', (_event: any, isActive: boolean) => {
+  global.shortcutRecordingActive = isActive;
+  if (isActive) clearShortcutPrefix();
+});
+
 app.whenReady().then(() => {
-  // Register global shortcuts to neutralize default close behavior
-  try {
-    globalShortcut.register('CommandOrControl+W', () => {});
-    globalShortcut.register('CommandOrControl+Shift+W', () => {});
-  } catch {}
-
-  createWindow();
-  createTray();
-  
-  // Add a global handler for all new windows/webviews
+  // Register the web-contents listener BEFORE createWindow so it catches the
+  // main BrowserWindow's webContents (created synchronously inside createWindow).
   app.on('web-contents-created', (_: any, contents: any) => {
-    // Prevent default browser shortcuts (e.g., Ctrl+W closing window)
     contents.on('before-input-event', (event: any, input: any) => {
-      const key = (input.key || '').toLowerCase();
-      const isCtrlOnly = !!input.control && !input.shift && !input.alt && !input.meta;
-      const isCtrlShift = !!input.control && !!input.shift && !input.alt && !input.meta;
-
-      if (isCtrlOnly && key === 'w') {
-        event.preventDefault();
-      }
-      if (isCtrlShift && key === 'w') {
-        event.preventDefault();
-      }
+      handleShortcutInput(event, input);
     });
 
     // For all web contents (including webviews)
     // Open all window.open() calls in external browser
-    contents.setWindowOpenHandler(({ url }: { url: string }) => {
+    contents.setWindowOpenHandler((details: any) => {
+      const { url } = details;
+      if (contents.getType?.() === 'webview' && isProviderAuthPopupUrl(url)) {
+        return {
+          action: 'allow',
+          overrideBrowserWindowOptions: {
+            width: 520,
+            height: 720,
+            title: 'Sign in',
+            autoHideMenuBar: true,
+            webPreferences: {
+              nodeIntegration: false,
+              contextIsolation: true,
+              nativeWindowOpen: true,
+              partition: 'persist:webtool',
+            },
+          },
+        };
+      }
+
       shell.openExternal(url);
       return { action: 'deny' };
     });
   });
+
+  createWindow();
+  if (!isE2E) createTray();
 });
 
 app.on('window-all-closed', () => {
@@ -466,7 +690,7 @@ app.on('window-all-closed', () => {
 // Prevent the app from quitting when all windows are closed
 app.on('before-quit', (event: any) => {
   // Only allow quitting if explicitly requested from tray menu
-  if (!global.isQuiting) {
+  if (!isE2E && !global.isQuiting) {
     event.preventDefault();
     // Hide the window instead of quitting
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -482,12 +706,5 @@ app.on('activate', () => {
   }
 });
 
-app.on('will-quit', () => {
-  try {
-    globalShortcut.unregister('CommandOrControl+W');
-    globalShortcut.unregister('CommandOrControl+Shift+W');
-    globalShortcut.unregisterAll();
-  } catch {}
-});
 
 export {};

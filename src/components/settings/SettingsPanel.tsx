@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useSettings } from '@/context/SettingsContext';
 import { useShortcuts } from '@/context/ShortcutsContext';
+import { useAITools } from '@/context/AIToolsContext';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -35,6 +36,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { formatShortcutCombo, getShortcutDisplayDescription, getShortcutDisplayName, shouldShowShortcut } from '@/lib/shortcutUtils';
 
 interface SettingsPanelProps {
   isCollapsed?: boolean;
@@ -45,7 +47,8 @@ export const SettingsPanel = ({ isCollapsed = false }: SettingsPanelProps) => {
   const [activeTab, setActiveTab] = useState<'general' | 'shortcuts'>('general');
   const [editingShortcut, setEditingShortcut] = useState<string | null>(null);
   const { settings, updateSettings, setAutostart } = useSettings();
-  const { shortcuts, resetAllShortcuts } = useShortcuts();
+  const { shortcuts, resetAllShortcuts, applyShortcutPreset } = useShortcuts();
+  const { tools } = useAITools();
   const { toast } = useToast();
   
   const [tempSettings, setTempSettings] = useState({
@@ -53,7 +56,7 @@ export const SettingsPanel = ({ isCollapsed = false }: SettingsPanelProps) => {
     defaultLayout: settings.defaultLayout,
     defaultTools: settings.defaultTools || [],
     autoLayout: settings.autoLayout ?? true,
-    syncedTabs: settings.syncedTabs ?? true,
+    syncedTabs: settings.syncedTabs ?? false,
   });
   
   useEffect(() => {
@@ -62,7 +65,7 @@ export const SettingsPanel = ({ isCollapsed = false }: SettingsPanelProps) => {
       defaultLayout: settings.defaultLayout,
       defaultTools: settings.defaultTools || [],
       autoLayout: settings.autoLayout ?? true,
-      syncedTabs: settings.syncedTabs ?? true,
+      syncedTabs: settings.syncedTabs ?? false,
     });
   }, [settings, open]);
   
@@ -98,6 +101,7 @@ export const SettingsPanel = ({ isCollapsed = false }: SettingsPanelProps) => {
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button 
+          data-testid="settings-button"
           variant="ghost"
           className={`w-full text-left justify-start font-normal transition-all duration-300 ${
             isCollapsed ? "justify-center p-0 h-10 w-10" : ""
@@ -286,7 +290,7 @@ export const SettingsPanel = ({ isCollapsed = false }: SettingsPanelProps) => {
                             : "The app will no longer start automatically with Windows.",
                           duration: 3000
                         });
-                      } catch (error) {
+                      } catch {
                         toast({
                           title: "Error",
                           description: "Failed to update autostart setting.",
@@ -305,27 +309,60 @@ export const SettingsPanel = ({ isCollapsed = false }: SettingsPanelProps) => {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-medium">Keyboard Shortcuts</h3>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      resetAllShortcuts();
-                      toast({
-                        title: "Shortcuts Reset",
-                        description: "All shortcuts have been reset to defaults.",
-                        duration: 2000
-                      });
-                    }}
-                    className="flex items-center gap-2"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                    Reset All
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      data-testid="shortcut-preset-iterm"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        applyShortcutPreset('iterm');
+                        toast({
+                          title: "iTerm Preset Applied",
+                          description: "Shortcuts have been set to standard tab shortcuts.",
+                          duration: 2000
+                        });
+                      }}
+                    >
+                      iTerm
+                    </Button>
+                    <Button
+                      data-testid="shortcut-preset-tmux"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        applyShortcutPreset('tmux');
+                        toast({
+                          title: "tmux Preset Applied",
+                          description: "Shortcuts have been set to prefix-style shortcuts.",
+                          duration: 2000
+                        });
+                      }}
+                    >
+                      tmux
+                    </Button>
+                    <Button
+                      data-testid="shortcut-reset"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        resetAllShortcuts();
+                        toast({
+                          title: "Shortcuts Reset",
+                          description: "Shortcuts have been reset to the original defaults.",
+                          duration: 2000
+                        });
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Reset
+                    </Button>
+                  </div>
                 </div>
                 
                 <div className="flex-1 overflow-y-auto space-y-2 pr-1">
                   {Object.entries(
-                    shortcuts.reduce((acc, shortcut) => {
+                    shortcuts.filter(shortcut => shouldShowShortcut(shortcut, tools)).reduce((acc, shortcut) => {
                       if (!acc[shortcut.category]) acc[shortcut.category] = [];
                       acc[shortcut.category].push(shortcut);
                       return acc;
@@ -338,24 +375,34 @@ export const SettingsPanel = ({ isCollapsed = false }: SettingsPanelProps) => {
                       <div className="space-y-1.5">
                         {categoryShortcuts.map((shortcut) => (
                           <div
+                            data-testid={`shortcut-row-${shortcut.id}`}
                             key={shortcut.id}
                             className="flex items-center justify-between p-2.5 rounded-lg border hover:bg-muted/50"
                           >
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium">{shortcut.name}</p>
+                              <p className="text-sm font-medium">{getShortcutDisplayName(shortcut, tools)}</p>
                               <p className="text-xs text-muted-foreground">
-                                {shortcut.description}
+                                {getShortcutDisplayDescription(shortcut, tools)}
                               </p>
                             </div>
                             <div className="flex items-center gap-2">
-                              <div className="flex gap-1">
-                                {shortcut.keys.map((key) => (
-                                  <Badge key={key} variant="secondary" className="text-xs">
-                                    {key}
-                                  </Badge>
+                              <div className="flex flex-wrap items-center gap-1 justify-end">
+                                {shortcut.keys.length === 0 && (
+                                  <span className="text-xs text-muted-foreground">Not assigned</span>
+                                )}
+                                {shortcut.keys.map((combo, comboIndex) => (
+                                  <div key={`${shortcut.id}-${comboIndex}`} className="flex items-center gap-1">
+                                    {comboIndex > 0 && <span className="text-xs text-muted-foreground">then</span>}
+                                    {formatShortcutCombo(combo).map((key) => (
+                                      <Badge key={`${shortcut.id}-${comboIndex}-${key}`} variant="secondary" className="text-xs">
+                                        {key}
+                                      </Badge>
+                                    ))}
+                                  </div>
                                 ))}
                               </div>
                               <Button
+                                data-testid={`edit-shortcut-${shortcut.id}`}
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setEditingShortcut(shortcut.id)}

@@ -20,9 +20,10 @@ interface AIToolViewProps {
   tool: AITool;
   instance: ToolInstance;
   isVisible: boolean;
+  panelId: number | null;
 }
 
-export const AIToolView = ({ tool, instance, isVisible }: AIToolViewProps) => {
+export const AIToolView = ({ tool, instance, isVisible, panelId }: AIToolViewProps) => {
   const webviewRef = useRef<HTMLWebViewElement>(null);
   const hasSetSrcRef = useRef(false);
   const favicon = useFavicon(tool.url, tool.icon);
@@ -30,6 +31,7 @@ export const AIToolView = ({ tool, instance, isVisible }: AIToolViewProps) => {
     closeToolInstance,
     updateToolState,
     updateToolInstance,
+    setActivePanel,
     pinToolInstance,
     unpinToolInstance
   } = useAITools();
@@ -38,6 +40,11 @@ export const AIToolView = ({ tool, instance, isVisible }: AIToolViewProps) => {
   const [canBack, setCanBack] = useState(false);
   const [canFwd, setCanFwd] = useState(false);
   const { toast } = useToast();
+
+  /** Marks the panel containing this view as the active keyboard target. */
+  const markPanelActive = () => {
+    if (panelId !== null) setActivePanel(panelId);
+  };
 
   // Only set src when visible for the first time
   useEffect(() => {
@@ -75,6 +82,7 @@ export const AIToolView = ({ tool, instance, isVisible }: AIToolViewProps) => {
     if (!webview || tool.type !== 'webview') return;
     
     const handleStartLoad = () => {
+      markPanelActive();
       setIsLoading(true);
       updateToolState(instance.id, { isLoading: true });
     };
@@ -84,18 +92,13 @@ export const AIToolView = ({ tool, instance, isVisible }: AIToolViewProps) => {
       updateToolState(instance.id, { isLoading: false });
     };
     
-    const handleNewWindow = () => {
-      // All window.open() calls are handled by main process setWindowOpenHandler
-      // No need to handle here
-    };
-    
     const updatePageTitle = () => {
       try {
         const wv: any = webview;
         const pageTitle = wv.getTitle?.() || '';
         if (pageTitle && pageTitle !== tool.name) {
           // Update instance title if it's different from the default tool name
-          updateToolInstance(instance.id, { customTitle: pageTitle });
+          updateToolInstance(instance.id, { title: pageTitle });
         }
       } catch (error) {
         console.error('Error getting page title:', error);
@@ -140,13 +143,13 @@ export const AIToolView = ({ tool, instance, isVisible }: AIToolViewProps) => {
     const handlePageTitleUpdated = (e: any) => {
       const pageTitle = e.title || '';
       if (pageTitle && pageTitle !== tool.name) {
-        updateToolInstance(instance.id, { customTitle: pageTitle });
+        updateToolInstance(instance.id, { title: pageTitle });
       }
     };
     
     webview.addEventListener('did-start-loading', handleStartLoad as any);
+    webview.addEventListener('focus', markPanelActive as any);
     webview.addEventListener('did-stop-loading', handleStopLoad as any);
-    webview.addEventListener('new-window', handleNewWindow as any);
     webview.addEventListener('dom-ready', handleDomReady as any);
     webview.addEventListener('did-navigate', handleNavigate as any);
     webview.addEventListener('did-navigate-in-page', handleNavigate as any);
@@ -154,14 +157,14 @@ export const AIToolView = ({ tool, instance, isVisible }: AIToolViewProps) => {
 
     return () => {
       webview.removeEventListener('did-start-loading', handleStartLoad as any);
+      webview.removeEventListener('focus', markPanelActive as any);
       webview.removeEventListener('did-stop-loading', handleStopLoad as any);
-      webview.removeEventListener('new-window', handleNewWindow as any);
       webview.removeEventListener('dom-ready', handleDomReady as any);
       webview.removeEventListener('did-navigate', handleNavigate as any);
       webview.removeEventListener('did-navigate-in-page', handleNavigate as any);
       webview.removeEventListener('page-title-updated', handlePageTitleUpdated as any);
     };
-  }, [tool.type]);
+  }, [tool.type, panelId]);
 
   const goBack = () => {
     const webview = webviewRef.current as any;
@@ -195,6 +198,8 @@ export const AIToolView = ({ tool, instance, isVisible }: AIToolViewProps) => {
   return (
     <Card 
       className="h-full flex flex-col dark:border-border/50 transition-all duration-300 ease-in-out"
+      onMouseDownCapture={markPanelActive}
+      onFocusCapture={markPanelActive}
       style={{
         visibility: isVisible ? 'visible' : 'hidden',
         pointerEvents: isVisible ? 'auto' : 'none'
@@ -298,8 +303,11 @@ export const AIToolView = ({ tool, instance, isVisible }: AIToolViewProps) => {
       <CardContent className="flex-1 p-0">
         {tool.type === 'webview' ? (
           <webview
+            data-testid={`webview-${instance.id}`}
+            data-panel-id={panelId ?? undefined}
             ref={webviewRef}
             className="w-full h-full"
+            allowpopups
             useragent={navigator.userAgent}
             title={tool.name}
             webpreferences="contextIsolation=yes, nodeIntegration=no, nativeWindowOpen=yes"
