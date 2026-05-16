@@ -1,4 +1,4 @@
-const { app, BrowserWindow, session, shell, Menu, Tray, nativeImage, ipcMain } = require('electron');
+const { app, BrowserWindow, session, shell, Menu, Tray, nativeImage, ipcMain, systemPreferences } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
@@ -33,6 +33,8 @@ if (!gotSingleInstanceLock) {
 // Global variables for tray and window
 let mainWindow: any = null;
 let tray: any = null;
+let providerContextMenu: any = null;
+const pendingNativeMediaAccessRequests = new Map<string, Promise<boolean>>();
 
 type ShortcutMode = 'standard' | 'prefix';
 type KeyCombo = string[];
@@ -86,6 +88,143 @@ const codeKeyLabels = new Map([
 /** Returns true when a provider webview should be allowed to open an in-app auth popup. */
 const isProviderAuthPopupUrl = (url: string) => {
   return /^https:\/\/accounts\.google\.com\//i.test(url);
+};
+
+/** Loads the ESM-only provider context-menu helper from the CommonJS main bundle. */
+const loadProviderContextMenu = async () => {
+  const dynamicImport = new Function('specifier', 'return import(specifier)');
+  const module = await dynamicImport('electron-context-menu');
+  return module.default;
+};
+
+/** Returns true when a URL can safely make normal web permission requests. */
+const isHttpUrl = (url: string) => {
+  return /^https?:\/\//i.test(url);
+};
+
+/** Returns the best origin URL from an Electron permission details payload. */
+const getPermissionRequestUrl = (details: any) => {
+  return details?.requestingUrl || details?.securityOrigin || details?.embeddingOrigin || '';
+};
+
+/** Returns a normalized origin string for an Electron permission request. */
+const getPermissionOrigin = (url: string) => {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return '';
+  }
+};
+
+/** Returns true when an Electron permission name represents media capture. */
+const isMediaPermission = (permission: string) => {
+  return ['media', 'audioCapture', 'videoCapture', 'microphone', 'camera'].includes(permission);
+};
+
+/** Returns the native macOS media types implied by an Electron permission request. */
+const getNativeMediaTypes = (permission: string, details: any): Array<'microphone' | 'camera'> => {
+  const mediaTypes = new Set<'microphone' | 'camera'>();
+  const requestedTypes = details?.mediaTypes || [];
+
+  if (permission === 'audioCapture' || permission === 'microphone' || requestedTypes.includes('audio') || details?.mediaType === 'audio') {
+    mediaTypes.add('microphone');
+  }
+  if (permission === 'videoCapture' || permission === 'camera' || requestedTypes.includes('video') || details?.mediaType === 'video') {
+    mediaTypes.add('camera');
+  }
+  if (mediaTypes.size === 0) mediaTypes.add('microphone');
+
+  return [...mediaTypes];
+};
+
+/** Returns true when native macOS microphone/camera access is already granted. */
+const hasNativeMediaAccess = (mediaTypes: Array<'microphone' | 'camera'>) => {
+  if (process.platform !== 'darwin') return true;
+  const statuses = mediaTypes.map(mediaType => ({
+    mediaType,
+    status: systemPreferences.getMediaAccessStatus(mediaType),
+  }));
+  return statuses.every(item => item.status === 'granted');
+};
+
+/** Requests one native macOS media permission with in-flight de-duplication. */
+const requestNativeMediaTypeAccess = (mediaType: 'microphone' | 'camera') => {
+  if (process.platform !== 'darwin') return Promise.resolve(true);
+
+  const status = systemPreferences.getMediaAccessStatus(mediaType);
+  if (status === 'granted') return Promise.resolve(true);
+  if (status === 'denied' || status === 'restricted') return Promise.resolve(false);
+
+  const pendingRequest = pendingNativeMediaAccessRequests.get(mediaType);
+  if (pendingRequest) return pendingRequest;
+
+  const request = systemPreferences.askForMediaAccess(mediaType)
+    .finally(() => pendingNativeMediaAccessRequests.delete(mediaType));
+  pendingNativeMediaAccessRequests.set(mediaType, request);
+  return request;
+};
+
+/** Requests any missing native macOS microphone/camera permission. */
+const requestNativeMediaAccess = async (mediaTypes: Array<'microphone' | 'camera'>) => {
+  if (process.platform !== 'darwin') return true;
+
+  for (const mediaType of mediaTypes) {
+    const granted = await requestNativeMediaTypeAccess(mediaType);
+    if (!granted) return false;
+  }
+
+  return true;
+};
+
+/** Configures persistent provider webviews to allow browser media prompts. */
+const configureProviderPermissions = (providerSession: any) => {
+  providerSession.setPermissionCheckHandler((_webContents: any, permission: string, requestingOrigin: string, details: any) => {
+    if (!isMediaPermission(permission)) return false;
+
+    const requestUrl = requestingOrigin || getPermissionRequestUrl(details);
+    const origin = getPermissionOrigin(requestUrl);
+    const mediaTypes = getNativeMediaTypes(permission, details);
+    const result = isHttpUrl(requestUrl) && !!origin && hasNativeMediaAccess(mediaTypes);
+    return result;
+  });
+
+  providerSession.setPermissionRequestHandler((_webContents: any, permission: string, callback: (granted: boolean) => void, details: any) => {
+    if (!isMediaPermission(permission)) {
+      callback(false);
+      return;
+    }
+
+    const requestUrl = getPermissionRequestUrl(details);
+    const origin = getPermissionOrigin(requestUrl);
+    const mediaTypes = getNativeMediaTypes(permission, details);
+
+    if (!isHttpUrl(requestUrl) || !origin) {
+      callback(false);
+      return;
+    }
+
+    requestNativeMediaAccess(mediaTypes)
+      .then(granted => callback(granted))
+      .catch(() => callback(false));
+  });
+};
+
+/** Installs a browser-like context menu for one provider webview. */
+const installProviderContextMenu = (contents: any) => {
+  if (contents.getType?.() !== 'webview' || !providerContextMenu) return;
+  providerContextMenu({
+    window: contents,
+    showSelectAll: true,
+    showCopyImageAddress: true,
+    showCopyVideoAddress: true,
+    showSaveImage: false,
+    showSaveImageAs: false,
+    showSaveVideo: false,
+    showSaveVideoAs: false,
+    showSaveLinkAs: false,
+    showServices: process.platform === 'darwin',
+    showInspectElement: isDevelopment,
+  });
 };
 
 // Keep this local copy paired with src/lib/shortcutUtils.ts. The main process
@@ -341,6 +480,7 @@ function createWindow() {
       allowRunningInsecureContent: false,
       devTools: false,
       nativeWindowOpen: true,
+      spellcheck: true,
       preload: path.join(__dirname, 'preload.js'),
       // backgroundThrottling: false
     }
@@ -420,8 +560,8 @@ function createWindow() {
     callback({ responseHeaders: details.responseHeaders });
   });
   
-  // Create a persistent session for webviews to retain logins
-  session.fromPartition('persist:webtool');
+  // Create a persistent session for webviews to retain logins and permissions
+  configureProviderPermissions(session.fromPartition('persist:webtool'));
 
   // Handle window events
   mainWindow.on('close', (event: any) => {
@@ -660,13 +800,16 @@ ipcMain.on('set-shortcut-recording-active', (_event: any, isActive: boolean) => 
   if (isActive) clearShortcutPrefix();
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  providerContextMenu = await loadProviderContextMenu();
+
   // Register the web-contents listener BEFORE createWindow so it catches the
   // main BrowserWindow's webContents (created synchronously inside createWindow).
   app.on('web-contents-created', (_: any, contents: any) => {
     contents.on('before-input-event', (event: any, input: any) => {
       handleShortcutInput(event, input);
     });
+    installProviderContextMenu(contents);
 
     // For all web contents (including webviews)
     // Open all window.open() calls in external browser

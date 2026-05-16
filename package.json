@@ -70,6 +70,7 @@
     "@tailwindcss/typography": "^0.5.16",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "electron-context-menu": "^4.1.2",
     "electron-updater": "^6.6.2",
     "lucide-react": "^0.475.0",
     "react": "^19.0.0",
@@ -128,6 +129,10 @@
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "AI Gate needs microphone access when an AI provider requests voice input.",
+        "NSCameraUsageDescription": "AI Gate needs camera access when an AI provider requests video input."
+      },
       "target": [
         {
           "target": "dmg",

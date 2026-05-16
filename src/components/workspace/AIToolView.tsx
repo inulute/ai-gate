@@ -328,7 +328,7 @@ export const AIToolView = ({ tool, instance, isVisible, panelId }: AIToolViewPro
             allowpopups
             useragent={navigator.userAgent}
             title={tool.name}
-            webpreferences="contextIsolation=yes, nodeIntegration=no, nativeWindowOpen=yes"
+            webpreferences="contextIsolation=yes, nodeIntegration=no, nativeWindowOpen=yes, spellcheck=yes"
             partition="persist:webtool"
           />
         ) : (
