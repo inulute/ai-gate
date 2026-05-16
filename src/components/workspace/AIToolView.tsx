@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { useRef, useEffect, useState } from 'react';
 import { useAITools } from '@/context/AIToolsContext';
+import { getNextWebviewZoomFactor, WEBVIEW_ZOOM_EVENT, type WebviewZoomAction } from '@/lib/webviewZoom';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,6 +56,23 @@ export const AIToolView = ({ tool, instance, isVisible, panelId }: AIToolViewPro
       hasSetSrcRef.current = true;
     }
   }, [isVisible, instance.state.lastUrl, tool.url]);
+
+  useEffect(() => {
+    /** Applies a browser zoom command when this view owns the active instance. */
+    const handleWebviewZoom = (event: Event) => {
+      const detail = (event as CustomEvent<{ instanceId: string; action: WebviewZoomAction }>).detail;
+      if (!detail || detail.instanceId !== instance.id) return;
+
+      const webview = webviewRef.current as any;
+      if (!webview || typeof webview.setZoomFactor !== 'function') return;
+
+      const currentZoom = typeof webview.getZoomFactor === 'function' ? webview.getZoomFactor() : 1;
+      webview.setZoomFactor(getNextWebviewZoomFactor(currentZoom, detail.action));
+    };
+
+    window.addEventListener(WEBVIEW_ZOOM_EVENT, handleWebviewZoom);
+    return () => window.removeEventListener(WEBVIEW_ZOOM_EVENT, handleWebviewZoom);
+  }, [instance.id]);
   
   const handleReload = () => {
     if (webviewRef.current && isVisible) {

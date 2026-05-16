@@ -69,6 +69,9 @@ const codeKeyLabels = new Map([
   ['Backquote', '`'],
   ['Minus', '-'],
   ['Equal', '='],
+  ['NumpadAdd', '+'],
+  ['NumpadSubtract', '-'],
+  ['NumpadEqual', '='],
   ['BracketLeft', '['],
   ['BracketRight', ']'],
   ['Backslash', '\\'],
@@ -113,6 +116,17 @@ const shortcutKeyFromInput = (input: any) => {
 /** Returns true when a key label is a shortcut modifier. */
 const isShortcutModifier = (key: string) => {
   return ['Mod', 'Ctrl', 'Meta', 'Alt', 'Shift'].includes(normalizeShortcutKey(key));
+};
+
+/** Returns the browser zoom shortcut id for Electron input, if any. */
+const getBrowserZoomShortcutIdFromInput = (input: any) => {
+  const inputKey = shortcutKeyFromInput(input);
+  const isPrimary = (!!input.control || !!input.meta) && !input.alt;
+  if (!isPrimary) return null;
+  if (inputKey === '=' || inputKey === '+') return 'browser-zoom-in';
+  if (!input.shift && inputKey === '-') return 'browser-zoom-out';
+  if (!input.shift && inputKey === '0') return 'browser-zoom-reset';
+  return null;
 };
 
 /** Checks whether Electron input matches a stored shortcut combo. */
@@ -174,6 +188,13 @@ const handleShortcutInput = (event: any, input: any) => {
   if (global.shortcutRecordingActive) return;
 
   const key = normalizeShortcutKey(input.key || '');
+  const browserZoomShortcutId = getBrowserZoomShortcutIdFromInput(input);
+  if (browserZoomShortcutId) {
+    event.preventDefault();
+    sendShortcutPayload({ type: 'action', shortcutId: browserZoomShortcutId });
+    return;
+  }
+
   const isPrimaryOnly = (!!input.control || !!input.meta) && !input.shift && !input.alt;
   const isPrimaryShift = (!!input.control || !!input.meta) && !!input.shift && !input.alt;
   const shouldNeutralizeNativeClose = key === 'w' && (isPrimaryOnly || isPrimaryShift);
@@ -687,17 +708,8 @@ app.on('window-all-closed', () => {
   // On Windows and Linux, keep the app running in the system tray
 });
 
-// Prevent the app from quitting when all windows are closed
-app.on('before-quit', (event: any) => {
-  // Only allow quitting if explicitly requested from tray menu
-  if (!isE2E && !global.isQuiting) {
-    event.preventDefault();
-    // Hide the window instead of quitting
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.hide();
-    }
-    return false;
-  }
+app.on('before-quit', () => {
+  global.isQuiting = true;
 });
 
 app.on('activate', () => {

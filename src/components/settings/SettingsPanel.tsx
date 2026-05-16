@@ -57,6 +57,7 @@ export const SettingsPanel = ({ isCollapsed = false }: SettingsPanelProps) => {
     defaultTools: settings.defaultTools || [],
     autoLayout: settings.autoLayout ?? true,
     syncedTabs: settings.syncedTabs ?? false,
+    showTabNumbers: settings.showTabNumbers ?? false,
   });
   
   useEffect(() => {
@@ -66,6 +67,7 @@ export const SettingsPanel = ({ isCollapsed = false }: SettingsPanelProps) => {
       defaultTools: settings.defaultTools || [],
       autoLayout: settings.autoLayout ?? true,
       syncedTabs: settings.syncedTabs ?? false,
+      showTabNumbers: settings.showTabNumbers ?? false,
     });
   }, [settings, open]);
   
@@ -86,6 +88,7 @@ export const SettingsPanel = ({ isCollapsed = false }: SettingsPanelProps) => {
       defaultTools: tempSettings.defaultTools,
       autoLayout: tempSettings.autoLayout,
       syncedTabs: tempSettings.syncedTabs,
+      showTabNumbers: tempSettings.showTabNumbers,
     });
 
     toast({
@@ -218,6 +221,25 @@ export const SettingsPanel = ({ isCollapsed = false }: SettingsPanelProps) => {
                     id="syncedTabs"
                     checked={tempSettings.syncedTabs}
                     onCheckedChange={(checked) => setTempSettings(prev => ({ ...prev, syncedTabs: checked }))}
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium">Tab Numbers</h3>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label htmlFor="showTabNumbers">Show numbers before tabs</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Display tab positions as 1:, 2:, and 3: in the tab bar.
+                    </p>
+                  </div>
+                  <Switch
+                    id="showTabNumbers"
+                    checked={tempSettings.showTabNumbers}
+                    onCheckedChange={(checked) => setTempSettings(prev => ({ ...prev, showTabNumbers: checked }))}
                   />
                 </div>
               </div>

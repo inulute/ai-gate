@@ -14,6 +14,7 @@ interface Settings {
   defaultTools: string[];
   autoLayout: boolean;
   syncedTabs: boolean;
+  showTabNumbers: boolean;
 }
 
 interface SettingsContextType {
@@ -32,6 +33,7 @@ const defaultSettings: Settings = {
   defaultTools: ['chatgpt', 'gemini'],
   autoLayout: true,
   syncedTabs: false,
+  showTabNumbers: false,
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -45,7 +47,8 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
     autostart: settings.autostart ?? false,
     defaultTools: settings.defaultTools ?? defaultSettings.defaultTools,
     autoLayout: (settings as any).autoLayout ?? true,
-    syncedTabs: (settings as any).syncedTabs ?? false
+    syncedTabs: (settings as any).syncedTabs ?? false,
+    showTabNumbers: (settings as any).showTabNumbers ?? false,
   };
 
   useEffect(() => {

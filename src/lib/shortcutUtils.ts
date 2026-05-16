@@ -17,6 +17,9 @@ const codeKeyLabels = new Map([
   ['Backquote', '`'],
   ['Minus', '-'],
   ['Equal', '='],
+  ['NumpadAdd', '+'],
+  ['NumpadSubtract', '-'],
+  ['NumpadEqual', '='],
   ['BracketLeft', '['],
   ['BracketRight', ']'],
   ['Backslash', '\\'],
@@ -77,6 +80,17 @@ export const comboFromKeyboardEvent = (event: KeyboardEvent): KeyCombo => {
   if (!isModifierKey(key)) keys.push(key);
 
   return keys;
+};
+
+/** Returns the browser zoom shortcut id for a keyboard event, if any. */
+export const getBrowserZoomShortcutIdFromKeyboardEvent = (event: KeyboardEvent) => {
+  const key = keyTokenFromKeyboardEvent(event);
+  const isPrimary = (event.ctrlKey || event.metaKey) && !event.altKey;
+  if (!isPrimary) return null;
+  if (key === '=' || key === '+') return 'browser-zoom-in';
+  if (!event.shiftKey && key === '-') return 'browser-zoom-out';
+  if (!event.shiftKey && key === '0') return 'browser-zoom-reset';
+  return null;
 };
 
 /** Checks whether a keyboard event matches a stored shortcut combo. */

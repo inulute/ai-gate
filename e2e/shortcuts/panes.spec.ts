@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/electronApp';
-import { activeTabInPanel, createToolInPanel, focusPanel, isWindowVisible, tabCount } from '../support/app';
+import { activeTabInPanel, createToolInPanel, focusPanel, isWindowVisible, tabCount, tabsInPanel } from '../support/app';
 import { applyItermPreset, applyTmuxPreset, pressPrefix, primaryKey } from '../support/shortcuts';
 
 test('iTerm direct tab shortcut switches to the intended tab', async ({ appPage }) => {
@@ -49,6 +49,31 @@ test('primary W closes an app tab and keeps the Electron window visible', async 
   await expect.poll(() => tabCount(appPage, 0)).toBe(1);
   await expect(activeTabInPanel(appPage, 0)).toHaveAttribute('data-tool-id', 'chatgpt');
   await expect.poll(() => isWindowVisible(appPage)).toBe(true);
+});
+
+test('closing the active middle tab selects the next adjacent tab', async ({ appPage }) => {
+  await applyTmuxPreset(appPage);
+  await createToolInPanel(appPage, 0, 'gemini');
+  await focusPanel(appPage, 0);
+  await pressPrefix(appPage, `${primaryKey()}+N`, '3');
+  await tabsInPanel(appPage, 0).nth(1).click();
+  await expect(activeTabInPanel(appPage, 0)).toHaveAttribute('data-tool-id', 'gemini');
+
+  await focusPanel(appPage, 0);
+  await pressPrefix(appPage, `${primaryKey()}+B`, 'x');
+
+  await expect.poll(() => tabCount(appPage, 0)).toBe(2);
+  await expect(activeTabInPanel(appPage, 0)).toHaveAttribute('data-tool-id', 'perplexity');
+});
+
+test('tab number setting prefixes tabs by visible order', async ({ appPage }) => {
+  await appPage.getByTestId('settings-button').click();
+  await appPage.getByLabel('Show numbers before tabs').click();
+  await appPage.getByRole('button', { name: /save settings/i }).click();
+
+  await expect(tabsInPanel(appPage, 0).nth(0)).toContainText('1:');
+  await createToolInPanel(appPage, 0, 'gemini');
+  await expect(tabsInPanel(appPage, 0).nth(1)).toContainText('2:');
 });
 
 test('tmux prefix x closes the active pane tab', async ({ appPage }) => {

@@ -14,9 +14,10 @@ interface TabProps {
   isActive: boolean;
   onClose: () => void;
   panelId: number; // The current panel this tab is being displayed in
+  tabNumber: number;
 }
 
-export const Tab = ({ instance, tool, isActive, onClose, panelId }: TabProps) => {
+export const Tab = ({ instance, tool, isActive, onClose, panelId, tabNumber }: TabProps) => {
   const { setActivePanelTab, highlightPanel } = useAITools();
   const { settings } = useSettings();
   const [tabIconUrl, setTabIconUrl] = useState(tool.icon || getFaviconUrl(tool.url) || '');
@@ -120,6 +121,7 @@ export const Tab = ({ instance, tool, isActive, onClose, panelId }: TabProps) =>
 
         {/* Tab Title */}
         <span className="flex-1 truncate text-sm font-medium">
+          {settings.showTabNumbers && <span className="text-muted-foreground">{tabNumber}: </span>}
           {displayTitle}
         </span>
       </div>
