@@ -76,6 +76,28 @@ test('tab number setting prefixes tabs by visible order', async ({ appPage }) =>
   await expect(tabsInPanel(appPage, 0).nth(1)).toContainText('2:');
 });
 
+test('browser zoom shortcut dispatches to the active tab', async ({ appPage }) => {
+  await focusPanel(appPage, 0);
+  const activeTabId = await activeTabInPanel(appPage, 0).getAttribute('data-testid');
+  const activeInstanceId = activeTabId?.replace(/^tab-/, '');
+  expect(activeInstanceId).toBeTruthy();
+
+  await appPage.evaluate(() => {
+    (window as any).__zoomEvents = [];
+    window.addEventListener('ai-gate-webview-zoom', ((event: Event) => {
+      (window as any).__zoomEvents.push((event as CustomEvent).detail);
+    }) as EventListener);
+  });
+
+  await appPage.keyboard.down(primaryKey());
+  await appPage.keyboard.press('=');
+  await appPage.keyboard.up(primaryKey());
+
+  await expect.poll(() => appPage.evaluate(() => (window as any).__zoomEvents)).toEqual([
+    { instanceId: activeInstanceId, action: 'in' },
+  ]);
+});
+
 test('tmux prefix x closes the active pane tab', async ({ appPage }) => {
   await applyTmuxPreset(appPage);
   await createToolInPanel(appPage, 0, 'gemini');

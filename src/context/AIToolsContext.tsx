@@ -342,10 +342,10 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
       Object.keys(updated).forEach(pid => {
         const panelId = parseInt(pid);
         if (updated[panelId] === instanceId) {
-          const visibleInstances = (settings.syncedTabs
+          const visibleInstances = [...(settings.syncedTabs
             ? toolInstances
             : toolInstances.filter(inst => inst.panelId === panelId)
-          ).sort((a, b) => settings.syncedTabs ? a.position - b.position : a.positionInPanel - b.positionInPanel);
+          )].sort((a, b) => settings.syncedTabs ? a.position - b.position : a.positionInPanel - b.positionInPanel);
           const closedIndex = visibleInstances.findIndex(inst => inst.id === instanceId);
           const remainingInstances = visibleInstances.filter(inst => inst.id !== instanceId);
           

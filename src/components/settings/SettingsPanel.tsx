@@ -233,7 +233,7 @@ export const SettingsPanel = ({ isCollapsed = false }: SettingsPanelProps) => {
                   <div className="space-y-1">
                     <Label htmlFor="showTabNumbers">Show numbers before tabs</Label>
                     <p className="text-xs text-muted-foreground">
-                      Display tab positions as 1:, 2:, and 3: in the tab bar.
+                      Prefix each tab with its position in the panel.
                     </p>
                   </div>
                   <Switch
