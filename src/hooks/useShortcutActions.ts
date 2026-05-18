@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useShortcuts } from '@/context/ShortcutsContext';
 import { useAITools } from '@/context/AIToolsContext';
 import { useSettings } from '@/context/SettingsContext';
+import { WEBVIEW_ZOOM_EVENT, type WebviewZoomAction } from '@/lib/webviewZoom';
 
 export const useShortcutActions = () => {
   const { registerAction, registerToolHotkeyAction, toolHotkeys } = useShortcuts();
@@ -26,6 +27,15 @@ export const useShortcutActions = () => {
 
   useEffect(() => {
     const visibleActivePanelId = activePanelId < parseInt(layout) ? activePanelId : 0;
+
+    /** Sends a browser zoom command to the active provider webview. */
+    const dispatchWebviewZoom = (action: WebviewZoomAction) => {
+      const activeInstance = getActivePanelInstance(visibleActivePanelId);
+      if (!activeInstance) return;
+      window.dispatchEvent(new CustomEvent(WEBVIEW_ZOOM_EVENT, {
+        detail: { instanceId: activeInstance.id, action },
+      }));
+    };
     
     registerAction('close-current-tool', () => {
       const activeInstance = getActivePanelInstance(visibleActivePanelId);
@@ -40,6 +50,16 @@ export const useShortcutActions = () => {
 
     registerAction('undo-close-tool', () => {
       restoreLastClosed();
+    });
+
+    registerAction('browser-zoom-in', () => {
+      dispatchWebviewZoom('in');
+    });
+    registerAction('browser-zoom-out', () => {
+      dispatchWebviewZoom('out');
+    });
+    registerAction('browser-zoom-reset', () => {
+      dispatchWebviewZoom('reset');
     });
 
     registerAction('layout-single', () => {

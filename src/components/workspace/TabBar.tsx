@@ -66,7 +66,7 @@ export const TabBar = ({ panelId, instances, activeInstanceId }: TabBarProps) =>
             items={instances.map(inst => inst.id)}
             strategy={horizontalListSortingStrategy}
           >
-            {instances.map((instance) => {
+            {instances.map((instance, index) => {
               const tool = getToolById(instance.toolId);
               if (!tool) return null;
 
@@ -78,6 +78,7 @@ export const TabBar = ({ panelId, instances, activeInstanceId }: TabBarProps) =>
                   isActive={instance.id === activeInstanceId}
                   onClose={() => closeToolInstance(instance.id)}
                   panelId={panelId}
+                  tabNumber={index + 1}
                 />
               );
             })}

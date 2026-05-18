@@ -6,6 +6,7 @@ import {
   buildShortcutPreset,
   comboMatchesKeyboardEvent,
   combosEqual,
+  getBrowserZoomShortcutIdFromKeyboardEvent,
   getDefaultShortcutModifier,
   type ShortcutPreset,
   shortcutSequencesEqual,
@@ -248,6 +249,13 @@ export const ShortcutsProvider = ({ children }: { children: React.ReactNode }) =
         return;
       }
       if (recordingRef.current) return;
+
+      const browserZoomShortcutId = getBrowserZoomShortcutIdFromKeyboardEvent(event);
+      if (browserZoomShortcutId) {
+        event.preventDefault();
+        runActionById(browserZoomShortcutId, actionsRef, toolHotkeyActionsRef);
+        return;
+      }
 
       const activePrefix = activePrefixRef.current;
       if (activePrefix) {

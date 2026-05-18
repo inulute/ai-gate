@@ -326,7 +326,13 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
 
     setToolInstances(current => {
       const updated = current.filter(inst => inst.id !== instanceId);
-      return updated.map((inst, index) => ({ ...inst, position: index }));
+      return updated.map((inst, index) => ({
+        ...inst,
+        position: index,
+        positionInPanel: inst.panelId === instance.panelId && inst.positionInPanel > instance.positionInPanel
+          ? inst.positionInPanel - 1
+          : inst.positionInPanel,
+      }));
     });
     
     // Clean up activePanelTabs if the closed instance was active
@@ -334,17 +340,21 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
       const updated = { ...current };
       // Check if this instance was active in any panel
       Object.keys(updated).forEach(pid => {
-        if (updated[parseInt(pid)] === instanceId) {
-          // Find another instance in this panel to activate
-          const remainingInstances = toolInstances
-            .filter(inst => inst.id !== instanceId && inst.panelId === parseInt(pid))
-            .sort((a, b) => a.positionInPanel - b.positionInPanel);
+        const panelId = parseInt(pid);
+        if (updated[panelId] === instanceId) {
+          const visibleInstances = [...(settings.syncedTabs
+            ? toolInstances
+            : toolInstances.filter(inst => inst.panelId === panelId)
+          )].sort((a, b) => settings.syncedTabs ? a.position - b.position : a.positionInPanel - b.positionInPanel);
+          const closedIndex = visibleInstances.findIndex(inst => inst.id === instanceId);
+          const remainingInstances = visibleInstances.filter(inst => inst.id !== instanceId);
           
           if (remainingInstances.length > 0) {
-            updated[parseInt(pid)] = remainingInstances[0].id;
+            const replacementIndex = Math.min(Math.max(closedIndex, 0), remainingInstances.length - 1);
+            updated[panelId] = remainingInstances[replacementIndex].id;
           } else {
             // No instances left in this panel, remove the active tab entry
-            delete updated[parseInt(pid)];
+            delete updated[panelId];
           }
         }
       });
