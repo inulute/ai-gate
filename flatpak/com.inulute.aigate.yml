@@ -39,8 +39,8 @@ modules:
       # Pre-built Linux zip from GitHub Releases
       # To update: download the new release zip, run `sha256sum AI-Gate-X.Y.Z.zip`, replace below
       - type: archive
-        url: https://github.com/inulute/ai-gate/releases/download/v4.5.0/AI.Gate-4.5.0.zip
-        sha256: 53751289ad54b477404ad48342f67a47bf179f1453c2222062820ffe1dae03da
+        url: https://github.com/inulute/ai-gate/releases/download/v4.6.0/AI.Gate-4.6.0.zip
+        sha256: REPLACE_WITH_SHA256_AFTER_RELEASE
         strip-components: 0
       # Launch wrapper script
       - type: script

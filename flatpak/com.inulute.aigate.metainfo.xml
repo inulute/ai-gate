@@ -50,6 +50,19 @@
   </screenshots>
 
   <releases>
+    <release version="4.6.0" date="2026-05-23">
+      <description>
+        <p>Wayland improvements and stability fixes</p>
+        <ul>
+          <li>Fixed black window on Wayland: switched to --ozone-platform-hint=auto so Electron falls back to XWayland gracefully when GPU sandbox is restricted</li>
+          <li>Added ELECTRON_OZONE_PLATFORM_HINT as a fifth Wayland detection trigger (modern Electron standard, also used by the Flatpak)</li>
+          <li>Fixed ELECTRON_ARGS feature flag parser dropping all but the first feature when multiple were comma-separated in one flag</li>
+          <li>Merged all --enable-features values into a single Chromium switch to prevent last-value-wins from silently dropping Wayland flags</li>
+          <li>Fixed Vite dev server crashing with ELOOP on flatpak/build-dir symlinks</li>
+          <li>AppImage and deb packages now ship with WaylandWindowDecorations enabled out of the box</li>
+        </ul>
+      </description>
+    </release>
     <release version="4.5.0" date="2026-03-04">
       <description>
         <p>Multi-Panel Workspace and Tab Management Improvements</p>
