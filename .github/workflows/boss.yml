@@ -16,7 +16,13 @@ on:
 
 permissions:
   contents: write
-  
+
+env:
+  # Opt into Node.js 24 runner for GitHub Actions now, before it becomes
+  # mandatory on June 2 2026. Avoids deprecation warnings on checkout,
+  # setup-node, upload-artifact, and ghaction-import-gpg.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   compute-matrix:
     runs-on: ubuntu-latest
@@ -28,11 +34,11 @@ jobs:
         run: |
           PLATFORM="${{ inputs.platform }}"
           if [ -z "$PLATFORM" ] || [ "$PLATFORM" == "all" ]; then
-            echo 'matrix={"include":[{"os":"ubuntu-latest","platform":"linux"},{"os":"windows-latest","platform":"windows"},{"os":"macos-latest","platform":"macos"}]}' >> $GITHUB_OUTPUT
+            echo 'matrix={"include":[{"os":"ubuntu-latest","platform":"linux"},{"os":"windows-2025","platform":"windows"},{"os":"macos-latest","platform":"macos"}]}' >> $GITHUB_OUTPUT
           elif [ "$PLATFORM" == "linux" ]; then
             echo 'matrix={"include":[{"os":"ubuntu-latest","platform":"linux"}]}' >> $GITHUB_OUTPUT
           elif [ "$PLATFORM" == "windows" ]; then
-            echo 'matrix={"include":[{"os":"windows-latest","platform":"windows"}]}' >> $GITHUB_OUTPUT
+            echo 'matrix={"include":[{"os":"windows-2025","platform":"windows"}]}' >> $GITHUB_OUTPUT
           elif [ "$PLATFORM" == "macos" ]; then
             echo 'matrix={"include":[{"os":"macos-latest","platform":"macos"}]}' >> $GITHUB_OUTPUT
           fi
@@ -53,7 +59,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
       
       - name: Extract version from package.json
@@ -221,48 +227,6 @@ jobs:
           ls -lah
         shell: bash
       
-      - name: Create release notes
-        run: |
-          cat > ./release-files/RELEASE_NOTES.md << EOF
-          # ${{ steps.version_info.outputs.product_name }} ${{ steps.version_info.outputs.tag_name }}
-          
-          Access all your AI tools seamlessly in one place.
-          
-          ## 📥 Downloads
-          
-          ### Windows
-          - **AI-Gate-Setup-${{ steps.version_info.outputs.version }}.exe** - Windows x64 installer (Intel/AMD) - **Most common**
-          - **AI-Gate-Setup-${{ steps.version_info.outputs.version }}-arm64.exe** - Windows ARM64 installer (Surface Pro X, etc.)
-          
-          ### macOS
-          - **AI-Gate-${{ steps.version_info.outputs.version }}-universal.dmg** - macOS installer (Intel + Apple Silicon)
-          - **AI-Gate-${{ steps.version_info.outputs.version }}-universal-mac.zip** - Portable version
-          
-          ### Linux
-          - **AI-Gate-${{ steps.version_info.outputs.version }}.AppImage** - Universal Linux package - **Recommended**
-          - **AI-Gate-${{ steps.version_info.outputs.version }}.deb** - Debian/Ubuntu package
-          - **AI-Gate-${{ steps.version_info.outputs.version }}.zip** - Pre-built archive (used by Flatpak/Flathub)
-          
-          ## 🚀 Installation
-          
-          **Windows**: Download the appropriate .exe for your system and run
-          **macOS**: Download the .dmg, open it, and drag AI Gate to Applications
-          **Linux**: Download .AppImage, make it executable (\`chmod +x\`), and run
-          
-          ## 🔒 Verification
-          
-          Verify file integrity using SHA256SUMS.txt
-          
-          ## 📝 What's New
-          
-          See [CHANGELOG.md](https://github.com/inulute/ai-gate/blob/main/CHANGELOG.md) for details.
-          
-          ## 🐛 Report Issues
-          
-          https://github.com/inulute/ai-gate/issues
-          EOF
-        shell: bash
-      
       - name: Create or update tag
         if: github.event_name == 'workflow_dispatch'
         run: |
@@ -272,12 +236,12 @@ jobs:
           git push -f origin ${{ steps.version_info.outputs.tag_name }}
         shell: bash
       
-      - name: Create GitHub Release
+      - name: Upload assets to GitHub Release
+        # Only uploads build artifacts — release notes are written manually via
+        # `gh release create` before tagging, so we don't touch the body here.
         uses: softprops/action-gh-release@v2
         with:
-          name: ${{ steps.version_info.outputs.product_name }} ${{ steps.version_info.outputs.tag_name }}
           tag_name: ${{ steps.version_info.outputs.tag_name }}
-          body_path: ./release-files/RELEASE_NOTES.md
           files: |
             ./release-files/*.exe
             ./release-files/*.dmg
@@ -286,8 +250,6 @@ jobs:
             ./release-files/*.deb
             ./release-files/*.asc
             ./release-files/SHA256SUMS.txt
-          draft: false
-          prerelease: ${{ contains(steps.version_info.outputs.tag_name, 'beta') || contains(steps.version_info.outputs.tag_name, 'alpha') }}
-          generate_release_notes: true
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
