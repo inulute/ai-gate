@@ -13,7 +13,9 @@ The app now detects Wayland sessions and automatically enables the necessary Chr
 # Any of these environment variables trigger Wayland mode:
 WAYLAND_DISPLAY=wayland-0          # Standard Wayland indicator
 XDG_SESSION_TYPE=wayland           # XDG standard
-NIXOS_OZONE_WL=1                   # NixOS-specific (for your use case!)
+NIXOS_OZONE_WL=1                   # NixOS-specific
+ELECTRON_OZONE_PLATFORM_HINT=auto  # Modern Electron ≥28 hint (also set by Flatpak)
+ELECTRON_OZONE_PLATFORM_HINT=wayland
 ```
 
 ### Enabled Features
@@ -168,11 +170,13 @@ If Wayland mode is slower than X11, it may be driver-related:
    ```
 
 ## Implementation Details
-- **Location**: `electron/main.ts` (lines 44-82)
-- **Detection**: Checks 3 environment variables before app initialization
+- **Location**: `electron/main.ts` — `detectAndEnableWayland()`
+- **Detection**: Checks 5 environment variables before app initialization
 - **Timing**: Flags applied before `app.whenReady()` (critical for early binding)
 - **Fallback**: X11/Xwayland if Wayland not detected
 - **Per-session**: Redetected each time app launches
+- **Packaged builds**: AppImage/deb automatically receive `--ozone-platform-hint=auto` via `executableArgs` in `package.json` (electron-builder), so no env var setup is needed for standard Wayland sessions
+- **Feature flag safety**: All `--enable-features` values (Wayland flags + any `ELECTRON_ARGS`) are merged into a single command-line switch so Chromium's "last value wins" behaviour cannot silently drop flags
 
 ## Further Reading
 - [Electron Ozone Documentation](https://github.com/electron/electron/blob/main/docs/tutorial/linux-ozone.md)

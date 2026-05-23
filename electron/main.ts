@@ -407,17 +407,26 @@ const handleShortcutInput = (event: any, input: any) => {
 const launchArgs = process.argv.slice(1);
 const launchedHidden = launchArgs.includes('--hidden');
 
-// Wayland support detection and configuration
+// Wayland support detection and configuration.
+// All feature flags are merged into a single appendSwitch call to avoid the
+// Chromium behaviour where the last --enable-features= wins and silently
+// drops earlier values.
 const detectAndEnableWayland = () => {
-  const isWaylandSession = process.env.WAYLAND_DISPLAY ||
-                          process.env.XDG_SESSION_TYPE === 'wayland' ||
-                          process.env.NIXOS_OZONE_WL === '1';
+  const isWaylandSession =
+    process.env.WAYLAND_DISPLAY ||
+    process.env.XDG_SESSION_TYPE === 'wayland' ||
+    process.env.NIXOS_OZONE_WL === '1' ||
+    // Honour the modern Electron ≥28 hint env var (also set by the Flatpak)
+    process.env.ELECTRON_OZONE_PLATFORM_HINT === 'auto' ||
+    process.env.ELECTRON_OZONE_PLATFORM_HINT === 'wayland';
+
+  // Collect all --enable-features values so we emit exactly one switch.
+  const enableFeatures: string[] = [];
 
   if (isWaylandSession) {
     console.log('🖥️  Detected Wayland session - Enabling native Wayland support...');
 
-    // Enable Ozone/Wayland support before app is ready
-    app.commandLine.appendSwitch('enable-features', [
+    enableFeatures.push(
       'WaylandWindowDecorations',
       'VaapiIgnoreDriverChecks',
       'VaapiVideoDecoder',
@@ -426,41 +435,48 @@ const detectAndEnableWayland = () => {
       'AcceleratedVideoEncoder',
       'UseMultiPlaneFormatForHardwareVideo',
       'Ozone',
-    ].join(','));
+    );
 
-    // Use Ozone/Wayland instead of X11
-    app.commandLine.appendSwitch('ozone-platform', 'wayland');
-
-    console.log('✅ Wayland flags enabled');
+    // Hint Electron to prefer Wayland over XWayland when available.
+    // Using 'auto' rather than forcing 'wayland' lets Electron fall back to
+    // XWayland gracefully (avoids black windows when GPU sandbox is restricted).
+    app.commandLine.appendSwitch('ozone-platform-hint', 'auto');
   } else {
     const displayServer = process.env.DISPLAY ? 'X11/Xwayland' : 'Unknown';
     console.log(`🖥️  Display server: ${displayServer}`);
   }
-};
 
-// Parse additional Electron arguments from environment (for NixOS and advanced users)
-const parseElectronArgs = () => {
+  // Merge any additional features from ELECTRON_ARGS (NixOS / advanced users).
+  // We do this here — rather than in a separate function — so everything lands
+  // in a single --enable-features switch and Chromium sees all flags.
   const electronArgs = process.env.ELECTRON_ARGS;
   if (electronArgs) {
     console.log('📋 Applying custom ELECTRON_ARGS from environment...');
-    // Parse comma-separated or space-separated feature flags
-    const features = electronArgs
-      .split(/[,\s]+/)
+    // Split by whitespace to get individual flags, then for each
+    // --enable-features=A,B,C split the value part by commas.
+    // Splitting the whole string by commas first would corrupt flags like
+    // --enable-features=FeatureA,FeatureB (only FeatureA would survive).
+    const extraFeatures = electronArgs
+      .split(/\s+/)
       .filter((flag: string) => flag && flag.startsWith('--enable-features='))
-      .map((flag: string) => flag.replace('--enable-features=', ''));
+      .flatMap((flag: string) => flag.replace('--enable-features=', '').split(','));
 
-    if (features.length > 0) {
-      const allFeatures = features.join(',');
-      console.log(`   Features: ${allFeatures}`);
-      // Append additional features to existing ones
-      app.commandLine.appendSwitch('enable-features', allFeatures);
+    if (extraFeatures.length > 0) {
+      enableFeatures.push(...extraFeatures);
     }
+  }
+
+  // Emit exactly one --enable-features switch (avoids Chromium "last wins" bug).
+  if (enableFeatures.length > 0) {
+    const featureList = [...new Set(enableFeatures)].join(',');
+    console.log(`   Features: ${featureList}`);
+    app.commandLine.appendSwitch('enable-features', featureList);
+    if (isWaylandSession) console.log('✅ Wayland flags enabled');
   }
 };
 
 // Call before app is ready
 detectAndEnableWayland();
-parseElectronArgs();
 
 function createWindow() {
   // Create the browser window.

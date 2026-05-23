@@ -17,7 +17,14 @@ export default defineConfig({
     dedupe: ['react', 'react-dom'],
   },
   server: {
-    port: 5173
+    port: 5173,
+    watch: {
+      // flatpak/build-dir and flatpak/.flatpak-builder/cache contain mounted
+      // system filesystems (e.g. /var/run/udev) with circular symlinks that
+      // crash Vite's FSWatcher with ELOOP -40.  Use a function-based ignore so
+      // chokidar skips the entire flatpak subtree before it tries to stat files.
+      ignored: (filePath: string) => filePath.includes('/flatpak/') || filePath.endsWith('/flatpak'),
+    },
   },
   build: {
     chunkSizeWarningLimit: 500,

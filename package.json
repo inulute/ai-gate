@@ -189,6 +189,9 @@
       "desktop": {
         "StartupWMClass": "ai-gate"
       },
+      "executableArgs": [
+        "--enable-features=WaylandWindowDecorations"
+      ],
       "artifactName": "${productName}-${version}.${ext}"
     },
     "appImage": {
