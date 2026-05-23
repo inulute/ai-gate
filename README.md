@@ -12,7 +12,7 @@
 
 [![Website](https://img.shields.io/badge/🌐_Website-aigate.inulute.com-black?style=for-the-badge)](https://aigate.inulute.com)
 
-[![Download AI Gate 4.5.0](https://img.shields.io/badge/Download-v4.5.0-blue?style=for-the-badge)](https://aigate.inulute.com/download)
+[![Download Latest](https://img.shields.io/github/v/release/inulute/ai-gate?style=for-the-badge&label=Download&color=blue)](https://aigate.inulute.com/download)
 
 <br/>
 
@@ -22,32 +22,32 @@
 
 ---
 
-## 🎉 What's New in v4.5.0
+## 🎉 What's New in v4.6.0
 
 <table>
 <tr>
 <td width="50%">
 
-### 🚀 Global Webview Pool
-Switching layouts now preserves all webview state — no reloads, no flashing. URLs stay loaded, scroll position maintained, sessions preserved.
+### 🖥️ Hardened Wayland Support
+Fixed black window on launch — Electron now uses `ozone-platform-hint=auto` so it picks native Wayland or XWayland based on what your GPU supports. Auto-detects `WAYLAND_DISPLAY`, `XDG_SESSION_TYPE`, `NIXOS_OZONE_WL`, and the modern `ELECTRON_OZONE_PLATFORM_HINT`.
 
-### 🪟 Multi-Panel Workspace
-View up to 3 AI tools simultaneously with synced or separate tab modes. Auto-expand layouts as you add tools.
+### ⌨️ Customizable Keyboard Shortcuts
+Full shortcut system with Standard and Prefix (tmux-style) modes. Three built-in presets: Original, iTerm, and tmux. Record custom shortcuts live with conflict detection.
 
-### ⚡ Performance Optimized
-Lazy webview creation, ResizeObserver-driven bounds, smooth CSS transitions. 0 typescript errors.
+### 🔍 Browser Zoom & Tab Numbers
+Zoom in/out/reset inside any provider webview (`Ctrl/Cmd +/-/0`). Tab numbers in the bar for quick keyboard targeting.
 
 </td>
 <td width="50%">
 
-### 🔄 Smart Tab Synchronization
-Fixed tab duplication, disappearing content, and state mismatches. Cleaner active tab management across panels.
+### 🚀 Global Webview Pool
+Switching layouts preserves all webview state — no reloads, no flashing. URLs, scroll position, and sessions stay intact.
 
-### 📌 State Preservation
-Hidden panels now preserve their active tab selection when switching back to wider layouts — no blank panels.
+### 🪟 Multi-Panel Workspace
+View up to 3 AI tools simultaneously with synced or separate tab modes.
 
-### 🛠️ Rock-Solid Stability
-Fixed React hooks violations, stale closures, and event handler issues. Adding/deleting tools works flawlessly.
+### 🛠️ Stability Fixes
+Fixed Vite dev-server ELOOP crash, ELECTRON_ARGS feature-flag parser, and duplicate `--enable-features` switch collision.
 
 </td>
 </tr>
@@ -85,17 +85,23 @@ Side-by-side comparison and workflows
 ⚡ **Lightning Fast**  
 Vite-powered React on Electron
 
+⌨️ **Keyboard Shortcuts**  
+Fully customizable, tmux-style prefix support
+
 </td>
 <td>
 
 🖥️ **Cross-Platform**  
-Windows, macOS, and Linux
+Windows, macOS, Linux — native Wayland included
 
 🔄 **Auto Updates**  
 Always up-to-date automatically
 
 🔒 **Privacy First**  
 No telemetry. No trackers. Period.
+
+📦 **Flatpak / Flathub**  
+Sandboxed install coming to Flathub
 
 </td>
 </tr>
@@ -140,7 +146,14 @@ No telemetry. No trackers. Period.
 <img src="https://img.shields.io/badge/Download-Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black" alt="Linux">
 </a>
 </td>
-<td>AppImage</td>
+<td>AppImage · deb · zip</td>
+</tr>
+<tr>
+<td><strong>Flatpak</strong></td>
+<td>
+<img src="https://img.shields.io/badge/Flathub-Coming_Soon-4A90D9?style=for-the-badge&logo=flathub&logoColor=white" alt="Flathub">
+</td>
+<td>Submission in progress</td>
 </tr>
 </table>
 
