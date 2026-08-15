@@ -37,3 +37,19 @@ export function getProviderIconKey(url: string): ProviderIconKey | null {
 
   return entry ? entry.key : null;
 }
+
+/**
+ * Picks the bundled mark for a tool unless the user uploaded their own icon.
+ * Uploads are always data URIs and are the one icon the user chose
+ * deliberately, so they outrank the mark we ship. A saved favicon URL does not
+ * — including the stale ones carried by installs that predate the bundled
+ * marks, which is what lets those installs pick the marks up without a
+ * migration.
+ */
+export function resolveProviderIconKey(url: string, icon?: string): ProviderIconKey | null {
+  if (icon?.startsWith('data:')) {
+    return null;
+  }
+
+  return getProviderIconKey(url);
+}

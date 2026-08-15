@@ -3,9 +3,10 @@ import { useState, useRef, useEffect } from 'react';
 import { useAITools } from '@/context/AIToolsContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Bot, Upload } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { type AITool } from '@/types/AITool';
 import { getFaviconUrl } from '@/lib/favicon';
+import { ToolIcon } from '@/components/ToolIcon';
 import {
   Dialog,
   DialogContent,
@@ -97,16 +98,13 @@ export const EditToolForm = ({ tool, open, onOpenChange }: EditToolFormProps) =>
             {/* Icon Preview */}
             <div className="relative group">
               <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center overflow-hidden">
-                <img
-                  src={editedTool.icon}
-                  alt="Tool icon"
-                  className="w-8 h-8 object-contain"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                  }}
+                <ToolIcon
+                  url={editedTool.url}
+                  icon={editedTool.icon}
+                  name={editedTool.name}
+                  className="w-8 h-8"
+                  imgClassName="object-contain"
                 />
-                <Bot className="w-6 h-6 hidden absolute inset-0 m-auto" />
                 <div
                   className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                   onClick={() => fileInputRef.current?.click()}

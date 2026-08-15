@@ -20,6 +20,12 @@ test('offers a newly added provider to an existing install', async ({ appPage })
   await appPage.reload();
 
   await expect.poll(() => toolIds(appPage)).toEqual(['chatgpt', 'claude', 'kimi']);
+
+  // The offer must be recorded, not repeated: a second launch would otherwise
+  // append Kimi again on every start.
+  await appPage.reload();
+  await appPage.waitForTimeout(1500);
+  expect(await toolIds(appPage)).toEqual(['chatgpt', 'claude', 'kimi']);
 });
 
 // ...but a built-in the user deleted must stay deleted.

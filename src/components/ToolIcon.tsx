@@ -3,7 +3,7 @@ import { Bot } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { getFaviconUrl } from '@/lib/favicon';
-import { getProviderIconKey } from '@/lib/providerIcons';
+import { resolveProviderIconKey } from '@/lib/providerIcons';
 import { ProviderIcon } from '@/components/ProviderIcon';
 
 interface ToolIconProps {
@@ -30,7 +30,7 @@ const REMOTE_ICON_TIMEOUT_MS = 6000;
  * saved icon, then the provider favicon, then a generic placeholder.
  */
 export const ToolIcon = ({ url, icon, name = '', className = 'w-4 h-4', imgClassName }: ToolIconProps) => {
-  const providerIconKey = getProviderIconKey(url);
+  const providerIconKey = resolveProviderIconKey(url, icon);
   const [iconUrl, setIconUrl] = useState(icon || getFaviconUrl(url) || '');
   const [showFallback, setShowFallback] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
