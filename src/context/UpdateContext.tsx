@@ -3,6 +3,8 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { updateService, ReleaseInfo, UpdateCheckResult } from '@/services/updateService';
 import { UpdatePopup } from '@/components/UpdatePopup';
 
+const DISMISSED_UPDATE_VERSION_KEY = 'dismissedUpdateVersion';
+
 interface UpdateContextType {
   hasUpdate: boolean;
   releaseInfo: ReleaseInfo | null;
@@ -35,7 +37,7 @@ export const UpdateProvider = ({ children }: { children: React.ReactNode }) => {
             setShowPopup(true);
             localStorage.removeItem('updateReminderTime');
           }
-        } else {
+        } else if (localStorage.getItem(DISMISSED_UPDATE_VERSION_KEY) !== result.releaseInfo.version) {
           setShowPopup(true);
         }
       } else {
@@ -54,6 +56,14 @@ export const UpdateProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const hideUpdatePopup = () => {
+    setShowPopup(false);
+  };
+
+  const dismissUpdatePopup = () => {
+    if (releaseInfo) {
+      localStorage.setItem(DISMISSED_UPDATE_VERSION_KEY, releaseInfo.version);
+    }
+    localStorage.removeItem('updateReminderTime');
     setShowPopup(false);
   };
 
@@ -81,6 +91,7 @@ export const UpdateProvider = ({ children }: { children: React.ReactNode }) => {
         <UpdatePopup
           isOpen={showPopup}
           onClose={hideUpdatePopup}
+          onDismiss={dismissUpdatePopup}
           releaseInfo={releaseInfo}
         />
       )}

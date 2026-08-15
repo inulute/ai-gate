@@ -2,6 +2,8 @@ const { app, BrowserWindow, session, shell, Menu, Tray, nativeImage, ipcMain, sy
 const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
+const { ALLOWED_OPEN_SCHEMES, getProviderPopupRoute }: typeof import('./popupRouting') = require('./popupRouting');
+const { normalizeTrayIcon } = require('./trayIcon');
 
 const isDevelopment = !app.isPackaged;
 const isE2E = process.env.AI_GATE_E2E === '1';
@@ -115,8 +117,6 @@ const getPermissionOrigin = (url: string) => {
 const isMediaPermission = (permission: string) => {
   return ['media', 'audioCapture', 'videoCapture', 'microphone', 'camera'].includes(permission);
 };
-
-const ALLOWED_OPEN_SCHEMES = ['http:', 'https:', 'mailto:'];
 
 /** Returns the native macOS media types implied by an Electron permission request. */
 const getNativeMediaTypes = (permission: string, details: any): Array<'microphone' | 'camera'> => {
@@ -666,15 +666,17 @@ function createTray() {
     icon = nativeImage.createFromBuffer(buffer, { width: size, height: size });
   }
   
+  const trayIcon = normalizeTrayIcon(icon);
+
   // Create the tray
-  tray = new Tray(icon);
+  tray = new Tray(trayIcon);
   
   // Force set the image again to ensure it's properly loaded
-  tray.setImage(icon);
+  tray.setImage(trayIcon);
   
   // Add some debugging
-  console.log('Tray created with icon size:', icon.getSize());
-  console.log('Tray icon is empty:', icon.isEmpty());
+  console.log('Tray created with icon size:', trayIcon.getSize());
+  console.log('Tray icon is empty:', trayIcon.isEmpty());
 
   // Create context menu for the tray
   const contextMenu = Menu.buildFromTemplate([
@@ -905,12 +907,9 @@ app.whenReady().then(async () => {
         if (ALLOWED_OPEN_SCHEMES.some(s => url.toLowerCase().startsWith(s))) shell.openExternal(url);
         return { action: 'deny' };
       }
-      // webview / OOPIF popups: only http/https open as in-app pop-up windows
-      // (via did-create-window confirmation). Other allowed schemes like mailto:
-      // must go to the OS handler, not a BrowserWindow that can't render them.
-      const lower = url.toLowerCase();
-      if (!lower.startsWith('http:') && !lower.startsWith('https:')) {
-        if (ALLOWED_OPEN_SCHEMES.some(s => lower.startsWith(s))) shell.openExternal(url);
+      const route = getProviderPopupRoute(url);
+      if (route !== 'in-app') {
+        if (route === 'external') shell.openExternal(url);
         return { action: 'deny' };
       }
       return {

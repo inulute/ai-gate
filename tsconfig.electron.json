@@ -17,6 +17,6 @@
     "types": ["electron"],
     "noEmit": false,
   },
-  "include": ["electron/main.ts"],
+  "include": ["electron/main.ts", "electron/popupRouting.ts", "electron/trayIcon.ts"],
   "exclude": ["node_modules", "electron/preload.ts"]
 }

@@ -21,10 +21,11 @@ import rehypeRaw from 'rehype-raw';
 interface UpdatePopupProps {
   isOpen: boolean;
   onClose: () => void;
+  onDismiss: () => void;
   releaseInfo: ReleaseInfo;
 }
 
-export const UpdatePopup = ({ isOpen, onClose, releaseInfo }: UpdatePopupProps) => {
+export const UpdatePopup = ({ isOpen, onClose, onDismiss, releaseInfo }: UpdatePopupProps) => {
   const [isOpening, setIsOpening] = useState(false);
   const { toast } = useToast();
 
@@ -39,6 +40,7 @@ export const UpdatePopup = ({ isOpen, onClose, releaseInfo }: UpdatePopupProps) 
         description: "The GitHub releases page has been opened in your browser.",
         duration: 3000
       });
+      onDismiss();
     } catch (error) {
       console.error('UpdatePopup: Error opening releases page:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -58,6 +60,7 @@ export const UpdatePopup = ({ isOpen, onClose, releaseInfo }: UpdatePopupProps) 
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(9, 0, 0, 0);
     
+    localStorage.removeItem('dismissedUpdateVersion');
     localStorage.setItem('updateReminderTime', tomorrow.toISOString());
     onClose();
     
@@ -162,7 +165,7 @@ export const UpdatePopup = ({ isOpen, onClose, releaseInfo }: UpdatePopupProps) 
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onDismiss()}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
         <DialogHeader>
           <div className="flex items-center justify-between">
