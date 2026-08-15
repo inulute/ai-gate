@@ -17,12 +17,6 @@ on:
 permissions:
   contents: write
 
-env:
-  # Opt into Node.js 24 runner for GitHub Actions now, before it becomes
-  # mandatory on June 2 2026. Avoids deprecation warnings on checkout,
-  # setup-node, upload-artifact, and ghaction-import-gpg.
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   compute-matrix:
     runs-on: ubuntu-latest
@@ -54,10 +48,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '20'
           cache: 'npm'
@@ -132,7 +126,7 @@ jobs:
       
       - name: Import GPG key
         if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || github.event_name == 'workflow_dispatch'
-        uses: crazy-max/ghaction-import-gpg@v6
+        uses: crazy-max/ghaction-import-gpg@v7
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
@@ -167,7 +161,7 @@ jobs:
         shell: bash
       
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.platform }}-build
           path: |
@@ -189,7 +183,7 @@ jobs:
     
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       
       - name: Extract version info
         id: version_info
@@ -214,7 +208,7 @@ jobs:
         shell: bash
       
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: ./artifacts
       
