@@ -181,6 +181,7 @@
       "target": [
         "AppImage",
         "deb",
+        "pacman",
         "zip"
       ],
       "icon": "./icons/png/favicon.png",
