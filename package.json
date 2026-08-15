@@ -71,7 +71,6 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "electron-context-menu": "^4.1.2",
-    "electron-updater": "^6.6.2",
     "lucide-react": "^0.475.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -139,12 +138,6 @@
           "arch": [
             "universal"
           ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "universal"
-          ]
         }
       ]
     },
@@ -171,14 +164,13 @@
       "uninstallerIcon": "./icons/win/favicon.ico",
       "installerHeaderIcon": "./icons/win/favicon.ico",
       "artifactName": "${productName}-Setup-${version}-${arch}.${ext}",
-      "differentialPackage": true
+      "differentialPackage": false
     },
     "linux": {
       "target": [
         "AppImage",
         "deb",
-        "pacman",
-        "zip"
+        "pacman"
       ],
       "icon": "./icons/png/favicon.png",
       "category": "Utility",

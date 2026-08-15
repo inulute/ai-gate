@@ -18,11 +18,26 @@ permissions:
   contents: write
 
 jobs:
-  compute-matrix:
+  # Resolves the tag once and makes sure a release exists to upload into, so the
+  # build jobs can attach their artifacts directly instead of round-tripping
+  # every file through the actions artifact store. Created as a draft: nothing
+  # is publicly visible until the publish job runs, which only happens if every
+  # platform succeeded.
+  prepare-release:
+    name: Prepare Release
     runs-on: ubuntu-latest
+    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || github.event_name == 'workflow_dispatch'
     outputs:
+      tag_name: ${{ steps.version_info.outputs.tag_name }}
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+    permissions:
+      contents: write
+
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
       - name: Set build matrix
         id: set-matrix
         run: |
@@ -36,25 +51,7 @@ jobs:
           elif [ "$PLATFORM" == "macos" ]; then
             echo 'matrix={"include":[{"os":"macos-latest","platform":"macos"}]}' >> $GITHUB_OUTPUT
           fi
-
-  # Resolves the tag once and makes sure a release exists to upload into, so the
-  # build jobs can attach their artifacts directly instead of round-tripping
-  # every file through the actions artifact store. Created as a draft: nothing
-  # is publicly visible until the publish job runs, which only happens if every
-  # platform succeeded.
-  prepare-release:
-    name: Prepare Release
-    runs-on: ubuntu-latest
-    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || github.event_name == 'workflow_dispatch'
-    outputs:
-      tag_name: ${{ steps.version_info.outputs.tag_name }}
-
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
+        shell: bash
 
       - name: Extract version info
         id: version_info
@@ -112,11 +109,11 @@ jobs:
   build:
     name: Build ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    needs: [compute-matrix, prepare-release]
+    needs: prepare-release
 
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.compute-matrix.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.prepare-release.outputs.matrix) }}
 
     permissions:
       contents: write
@@ -130,7 +127,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
       
       - name: Extract version from package.json
@@ -164,13 +161,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
       
-      - name: Remove publish config from package.json
-        run: |
-          cp package.json package.json.bak
-          node -e "const pkg = require('./package.json'); delete pkg.build.publish; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
-          echo "Modified package.json (publish config removed)"
-        shell: bash
-      
       - name: Build TypeScript
         run: |
           npx tsc -p tsconfig.electron.json
@@ -186,15 +176,11 @@ jobs:
       # a third, combined installer that duplicated both and shipped unsigned.
       - name: Build Electron - Windows
         if: matrix.platform == 'windows'
-        run: npx electron-builder --win
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --win --publish never
       
       - name: Build Electron - macOS
         if: matrix.platform == 'macos'
-        run: npx electron-builder --mac
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --mac --publish never
       
       # fpm shells out to bsdtar to write pacman archives; it is not on the
       # ubuntu runner image by default.
@@ -207,9 +193,7 @@ jobs:
 
       - name: Build Electron - Linux
         if: matrix.platform == 'linux'
-        run: npx electron-builder --linux
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --linux --publish never
       
       # Stage this platform's shippable files so the attest and upload steps get
       # a directory that exists on every runner, rather than globs that match
@@ -217,7 +201,7 @@ jobs:
       - name: Collect release files
         run: |
           mkdir -p release-files
-          find release-builds -maxdepth 1 -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.zip" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.pacman" \) -exec cp {} release-files/ \;
+          find release-builds -maxdepth 1 -type f \( -name "*-x64.exe" -o -name "*-arm64.exe" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.pacman" \) -exec cp {} release-files/ \;
           echo "Files to publish:"
           ls -lah release-files
         shell: bash
@@ -235,6 +219,9 @@ jobs:
           tag_name: ${{ needs.prepare-release.outputs.tag_name }}
           files: release-files/*
           fail_on_unmatched_files: true
+          # Without this the upload clears the draft flag and publishes a
+          # release holding only the platform that happened to finish first.
+          draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -242,7 +229,7 @@ jobs:
   # makes it visible, and only once every platform succeeded.
   publish:
     name: Publish Release
-    needs: [compute-matrix, prepare-release, build]
+    needs: [prepare-release, build]
     runs-on: ubuntu-latest
     if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || github.event_name == 'workflow_dispatch'
 
