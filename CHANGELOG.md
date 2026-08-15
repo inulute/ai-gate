@@ -7,6 +7,7 @@ All notable changes to AI Gate are documented here.
 ## [4.8.0] — 2026-08-16
 
 ### Added
+- **Kimi** joins the built-in providers. Existing installs pick it up on next launch — providers added in a later version are now offered once to installs that already have a tool list, and a built-in you delete stays deleted.
 - **Arch Linux package** — releases now ship a `.pacman` alongside the AppImage, `.deb`, and zip. Closes #11, which asked for Debian and Arch packages; `.deb` had shipped in the meantime, this adds the other half.
 
 ### Fixed

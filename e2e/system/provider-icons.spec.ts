@@ -12,6 +12,7 @@ const BUILT_IN_TOOL_URLS = [
   'https://chat.qwen.ai',
   'https://claude.ai',
   'https://grok.com',
+  'https://www.kimi.com',
 ];
 
 test('ships a bundled mark for every built-in provider', () => {

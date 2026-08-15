@@ -43,6 +43,9 @@ interface AIToolsContextType {
   highlightPanel: (panelId: number) => void;
 }
 
+/** Built-in providers that shipped before the offered-defaults bookkeeping. */
+const PRE_4_8_DEFAULT_IDS = ['chatgpt', 'gemini', 'perplexity', 'qwen', 'claude', 'grok'];
+
 const AIToolsContext = createContext<AIToolsContextType | undefined>(undefined);
 
 export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => {
@@ -61,21 +64,45 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
     (settings.defaultLayout || '2') as LayoutType
   );
 
-  // Seed default tools on first run
+  // Which built-in providers this install has already been offered. Kept apart
+  // from the tool list so a provider added in a later version reaches existing
+  // users too, while one the user deleted stays deleted.
+  const [offeredDefaults, setOfferedDefaults] = useLocalStorage<string[]>('offered-default-tools', []);
+
+  // Seed built-in tools, and offer any that were added after this install
   useEffect(() => {
+    const toolUrl = (url: string) => isE2E ? 'about:blank' : url;
+    // No icon URLs: the marks for these providers ship with the app and are
+    // resolved from the tool's hostname, so the sidebar draws them offline.
+    const defaults: AITool[] = [
+      { id: 'chatgpt', name: 'ChatGPT', url: toolUrl('https://chatgpt.com'), type: 'webview', icon: '' },
+      { id: 'gemini', name: 'Gemini', url: toolUrl('https://gemini.google.com'), type: 'webview', icon: '' },
+      { id: 'perplexity', name: 'Perplexity', url: toolUrl('https://www.perplexity.ai'), type: 'webview', icon: '' },
+      { id: 'qwen', name: 'Qwen', url: toolUrl('https://chat.qwen.ai'), type: 'webview', icon: '' },
+      { id: 'claude', name: 'Claude', url: toolUrl('https://claude.ai'), type: 'webview', icon: '' },
+      { id: 'grok', name: 'Grok', url: toolUrl('https://grok.com'), type: 'webview', icon: '' },
+      { id: 'kimi', name: 'Kimi', url: toolUrl('https://www.kimi.com'), type: 'webview', icon: '' },
+    ];
+
     if (tools.length === 0) {
-      const toolUrl = (url: string) => isE2E ? 'about:blank' : url;
-      // No icon URLs: the marks for these providers ship with the app and are
-      // resolved from the tool's hostname, so the sidebar draws them offline.
-      const defaults: AITool[] = [
-        { id: 'chatgpt', name: 'ChatGPT', url: toolUrl('https://chatgpt.com'), type: 'webview', icon: '' },
-        { id: 'gemini', name: 'Gemini', url: toolUrl('https://gemini.google.com'), type: 'webview', icon: '' },
-        { id: 'perplexity', name: 'Perplexity', url: toolUrl('https://www.perplexity.ai'), type: 'webview', icon: '' },
-        { id: 'qwen', name: 'Qwen', url: toolUrl('https://chat.qwen.ai'), type: 'webview', icon: '' },
-        { id: 'claude', name: 'Claude', url: toolUrl('https://claude.ai'), type: 'webview', icon: '' },
-        { id: 'grok', name: 'Grok', url: toolUrl('https://grok.com'), type: 'webview', icon: '' },
-      ];
       setTools(defaults);
+      setOfferedDefaults(defaults.map(tool => tool.id));
+      return;
+    }
+
+    // An install that predates this bookkeeping was offered everything that
+    // shipped before Kimi. Deriving that from the current tool list instead
+    // would resurrect built-ins the user had deleted.
+    const alreadyOffered = new Set(
+      offeredDefaults.length > 0 ? offeredDefaults : PRE_4_8_DEFAULT_IDS
+    );
+    const pending = defaults.filter(tool => !alreadyOffered.has(tool.id));
+
+    if (pending.length > 0) {
+      setTools([...tools, ...pending]);
+    }
+    if (pending.length > 0 || offeredDefaults.length === 0) {
+      setOfferedDefaults([...alreadyOffered, ...pending.map(tool => tool.id)]);
     }
   }, [isE2E]);
 

@@ -4,7 +4,7 @@
 // separate from the SVGs themselves so the lookup can be imported without
 // pulling in a component module.
 
-export type ProviderIconKey = 'openai' | 'gemini' | 'perplexity' | 'qwen' | 'claude' | 'grok';
+export type ProviderIconKey = 'openai' | 'gemini' | 'perplexity' | 'qwen' | 'claude' | 'grok' | 'kimi';
 
 /**
  * Hostname suffixes for each bundled mark. Matching on the host rather than the
@@ -19,6 +19,7 @@ const PROVIDER_HOSTS: Array<{ key: ProviderIconKey; hosts: string[] }> = [
   { key: 'qwen', hosts: ['qwen.ai', 'tongyi.aliyun.com'] },
   { key: 'claude', hosts: ['claude.ai', 'anthropic.com'] },
   { key: 'grok', hosts: ['grok.com', 'x.ai'] },
+  { key: 'kimi', hosts: ['kimi.com', 'kimi.moonshot.cn', 'moonshot.cn'] },
 ];
 
 /** Returns the bundled mark for a provider URL, or null when we don't ship one. */
