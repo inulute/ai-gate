@@ -161,6 +161,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
       
+      # vite build runs through esbuild, which strips types without checking
+      # them, and the two configs below only cover the handful of files in
+      # electron/. Without this nothing type-checks src/, so a type error in
+      # the renderer would package and ship.
+      - name: Type-check
+        run: npx tsc --noEmit -p tsconfig.json
+
       - name: Build TypeScript
         run: |
           npx tsc -p tsconfig.electron.json
