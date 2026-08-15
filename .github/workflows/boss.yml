@@ -134,42 +134,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Import GPG key
-        if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || github.event_name == 'workflow_dispatch'
-        uses: crazy-max/ghaction-import-gpg@v7
-        with:
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.GPG_PASSPHRASE }}
-        continue-on-error: true
-      
-      - name: Sign packages
-        if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || github.event_name == 'workflow_dispatch'
-        run: |
-          if command -v gpg &> /dev/null; then
-            echo "Signing packages..."
-            find release-builds -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.pacman" -o -name "*.zip" \) -exec gpg --batch --yes --detach-sign --armor {} \;
-            echo "Signed packages:"
-            find release-builds -name "*.asc"
-          else
-            echo "GPG not available, skipping signing"
-          fi
-        shell: bash
-        continue-on-error: true
-      
-      - name: Generate checksums - Windows
-        if: matrix.platform == 'windows'
-        run: |
-          cd release-builds
-          Get-ChildItem -Include *.exe,*.zip -Recurse | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash)  $(Split-Path $_.Path -Leaf)" } | Out-File -Encoding ASCII SHA256SUMS.txt
-        shell: pwsh
-      
-      - name: Generate checksums - Unix
-        if: matrix.platform != 'windows'
-        run: |
-          cd release-builds
-          find . -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.zip" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.pacman" \) -exec shasum -a 256 {} \; > SHA256SUMS.txt 2>/dev/null || true
-        shell: bash
-      
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
@@ -190,6 +154,8 @@ jobs:
     
     permissions:
       contents: write
+      id-token: write
+      attestations: write
     
     steps:
       - name: Checkout
@@ -229,13 +195,9 @@ jobs:
           echo "Artifact directories:"
           ls -la ./artifacts/
           
-          find ./artifacts -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.zip" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.pacman" -o -name "*.asc" \) -exec cp {} ./release-files/ \;
+          find ./artifacts -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.zip" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.pacman" \) -exec cp {} ./release-files/ \;
           
           cd ./release-files
-          find . -type f -name "SHA256SUMS.txt" -exec cat {} \; > ALL_CHECKSUMS.txt 2>/dev/null || true
-          find . -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.zip" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.pacman" \) -exec sha256sum {} \; > SHA256SUMS.txt 2>/dev/null || true
-          rm -f ALL_CHECKSUMS.txt
-          
           echo "Release files prepared:"
           ls -lah
         shell: bash
@@ -249,6 +211,11 @@ jobs:
           git push -f origin ${{ steps.version_info.outputs.tag_name }}
         shell: bash
       
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: './release-files/*'
+
       - name: Upload assets to GitHub Release
         # Only uploads build artifacts — release notes are written manually via
         # `gh release create` before tagging, so we don't touch the body here.
@@ -262,8 +229,6 @@ jobs:
             ./release-files/*.AppImage
             ./release-files/*.deb
             ./release-files/*.pacman
-            ./release-files/*.asc
-            ./release-files/SHA256SUMS.txt
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
