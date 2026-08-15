@@ -1,7 +1,7 @@
 // src/components/workspace/AIToolView.tsx
 import { X, RotateCw, Pin, PinOff, MoreVertical, ChevronLeft, ChevronRight, Link as LinkIcon } from 'lucide-react';
 import { AITool, ToolInstance } from '@/types/AITool';
-import { getFaviconUrl } from '@/lib/favicon';
+import { ToolIcon } from '@/components/ToolIcon';
 import useFavicon from '@/hooks/useFavicon';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
@@ -255,14 +255,12 @@ export const AIToolView = ({ tool, instance, isVisible, panelId }: AIToolViewPro
           >
             <LinkIcon className="h-3.5 w-3.5" />
           </Button>
-          <img
-            src={favicon || getFaviconUrl(tool.url) || ''}
-            alt=""
-            className="w-4 h-4 rounded-full border border-border bg-card"
-            onError={(e) => {
-              const target = e.currentTarget as HTMLImageElement;
-              target.style.display = 'none';
-            }}
+          <ToolIcon
+            url={tool.url}
+            icon={favicon || tool.icon}
+            name={tool.name}
+            className="w-4 h-4"
+            imgClassName="rounded-full border border-border bg-card"
           />
           <h3 className="font-medium text-xs text-foreground truncate">{instance.title}</h3>
           {instance.isPinned && (

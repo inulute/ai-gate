@@ -4,6 +4,7 @@ import { useAITools } from '@/context/AIToolsContext';
 import { Button } from '@/components/ui/button';
 import { X, ChevronDown, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ToolIcon } from '@/components/ToolIcon';
 
 interface DefaultToolsSelectorProps {
   layout: string;
@@ -90,13 +91,12 @@ export const DefaultToolsSelector = ({ layout, selectedTools, onToolsChange }: D
                   key={toolId}
                   className="flex items-center gap-2 p-2 rounded-lg border bg-primary/10 border-primary text-primary"
                 >
-                  <img
-                    src={tool?.icon}
-                    alt={tool?.name}
-                    className="w-4 h-4 rounded"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
+                  <ToolIcon
+                    url={tool?.url || ''}
+                    icon={tool?.icon}
+                    name={tool?.name}
+                    className="w-4 h-4"
+                    imgClassName="rounded"
                   />
                   <span className="text-sm font-medium truncate flex-1">{tool?.name || toolId}</span>
                   <button
@@ -148,13 +148,12 @@ export const DefaultToolsSelector = ({ layout, selectedTools, onToolsChange }: D
                       }}
                       className="w-full flex items-center gap-2 p-2 hover:bg-muted/50 text-left transition-colors"
                     >
-                      <img
-                        src={tool.icon}
-                        alt={tool.name}
-                        className="w-4 h-4 rounded"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
+                      <ToolIcon
+                        url={tool.url}
+                        icon={tool.icon}
+                        name={tool.name}
+                        className="w-4 h-4"
+                        imgClassName="rounded"
                       />
                       <span className="text-sm font-medium truncate">{tool.name}</span>
                     </button>

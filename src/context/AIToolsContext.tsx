@@ -65,13 +65,15 @@ export const AIToolsProvider = ({ children }: { children: React.ReactNode }) => 
   useEffect(() => {
     if (tools.length === 0) {
       const toolUrl = (url: string) => isE2E ? 'about:blank' : url;
+      // No icon URLs: the marks for these providers ship with the app and are
+      // resolved from the tool's hostname, so the sidebar draws them offline.
       const defaults: AITool[] = [
-        { id: 'chatgpt', name: 'ChatGPT', url: toolUrl('https://chatgpt.com'), type: 'webview', icon: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/openai.svg' },
-        { id: 'gemini', name: 'Gemini', url: toolUrl('https://gemini.google.com'), type: 'webview', icon: 'https://www.gstatic.com/lamda/images/gemini_sparkle_aurora_33f86dc0c0257da337c63.svg' },
-        { id: 'perplexity', name: 'Perplexity', url: toolUrl('https://www.perplexity.ai'), type: 'webview', icon: 'https://www.perplexity.ai/favicon.ico' },
-        { id: 'qwen', name: 'Qwen', url: toolUrl('https://chat.qwen.ai'), type: 'webview', icon: 'https://assets.alicdn.com/g/qwenweb/qwen-webui-fe/0.0.208/favicon.png' },
-        { id: 'claude', name: 'Claude', url: toolUrl('https://claude.ai'), type: 'webview', icon: 'https://claude.ai/favicon.ico' },
-        { id: 'grok', name: 'Grok', url: toolUrl('https://grok.com'), type: 'webview', icon: 'https://grok.com/images/favicon-dark.png' },
+        { id: 'chatgpt', name: 'ChatGPT', url: toolUrl('https://chatgpt.com'), type: 'webview', icon: '' },
+        { id: 'gemini', name: 'Gemini', url: toolUrl('https://gemini.google.com'), type: 'webview', icon: '' },
+        { id: 'perplexity', name: 'Perplexity', url: toolUrl('https://www.perplexity.ai'), type: 'webview', icon: '' },
+        { id: 'qwen', name: 'Qwen', url: toolUrl('https://chat.qwen.ai'), type: 'webview', icon: '' },
+        { id: 'claude', name: 'Claude', url: toolUrl('https://claude.ai'), type: 'webview', icon: '' },
+        { id: 'grok', name: 'Grok', url: toolUrl('https://grok.com'), type: 'webview', icon: '' },
       ];
       setTools(defaults);
     }

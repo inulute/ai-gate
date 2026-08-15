@@ -29,7 +29,6 @@ import {
   Layout,
   LayoutList,
   LayoutGrid,
-  Bot,
   Pencil,
   Trash2,
   Plus,
@@ -41,7 +40,7 @@ import {
   GripVertical,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getFaviconUrl } from '@/lib/favicon';
+import { ToolIcon } from '@/components/ToolIcon';
 import { type LayoutType, type AITool } from '@/types/AITool';
 import { AddToolForm } from '../forms/AddToolForm';
 import { EditToolForm } from '../forms/EditToolForm';
@@ -69,42 +68,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Extracted component so icon fallback state is scoped per tool.
-const ToolIcon = ({ url, icon }: { url: string; icon?: string }) => {
-  const [iconUrl, setIconUrl] = useState(icon || getFaviconUrl(url) || '');
-  const [showFallback, setShowFallback] = useState(false);
-
-  useEffect(() => {
-    setIconUrl(icon || getFaviconUrl(url) || '');
-    setShowFallback(false);
-  }, [icon, url]);
-
-  /** Falls back to the provider favicon when a saved sidebar icon fails. */
-  const handleIconError = () => {
-    const fallbackUrl = getFaviconUrl(url) || '';
-    if (fallbackUrl && iconUrl !== fallbackUrl) {
-      setIconUrl(fallbackUrl);
-      return;
-    }
-
-    setShowFallback(true);
-  };
-
-  return (
-    <div className="w-6 h-6 relative shrink-0 flex items-center justify-center">
-      {showFallback ? (
-        <Bot className="h-4 w-4" />
-      ) : (
-        <img
-          src={iconUrl}
-          alt=""
-          className="w-5 h-5 rounded-full object-cover border border-border bg-card"
-          onError={handleIconError}
-        />
-      )}
-    </div>
-  );
-};
+// Wrapper keeps the sidebar's fixed icon box; ToolIcon owns the source chain.
+const SidebarToolIcon = ({ url, icon, name }: { url: string; icon?: string; name: string }) => (
+  <div className="w-6 h-6 relative shrink-0 flex items-center justify-center">
+    <ToolIcon
+      url={url}
+      icon={icon}
+      name={name}
+      className="w-5 h-5"
+      imgClassName="rounded-full object-cover border border-border bg-card"
+    />
+  </div>
+);
 
 interface SortableToolItemProps {
   tool: AITool;
@@ -168,7 +143,7 @@ const SortableToolItem = ({
         )}
         onClick={(e) => onSelect(tool, e.ctrlKey || e.metaKey)}
       >
-        <ToolIcon url={tool.url} icon={tool.icon} />
+        <SidebarToolIcon url={tool.url} icon={tool.icon} name={tool.name} />
         {!isCollapsed && (
           <span className="ml-3 truncate">{tool.name}</span>
         )}

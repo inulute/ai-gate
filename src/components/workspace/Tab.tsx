@@ -1,11 +1,10 @@
 // src/components/workspace/Tab.tsx
-import { Bot, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { X } from 'lucide-react';
 import { ToolInstance, AITool } from '@/types/AITool';
 import { useAITools } from '@/context/AIToolsContext';
 import { useSettings } from '@/context/SettingsContext';
 import { useSortable } from '@dnd-kit/sortable';
-import { getFaviconUrl } from '@/lib/favicon';
+import { ToolIcon } from '@/components/ToolIcon';
 
 interface TabProps {
   instance: ToolInstance;
@@ -19,9 +18,6 @@ interface TabProps {
 export const Tab = ({ instance, tool, isActive, onClose, panelId, tabNumber }: TabProps) => {
   const { setActivePanelTab, highlightPanel } = useAITools();
   const { settings } = useSettings();
-  const [tabIconUrl, setTabIconUrl] = useState(tool.icon || getFaviconUrl(tool.url) || '');
-  const [showIconFallback, setShowIconFallback] = useState(false);
-
   const {
     attributes,
     listeners,
@@ -42,11 +38,6 @@ export const Tab = ({ instance, tool, isActive, onClose, panelId, tabNumber }: T
   };
 
   const displayTitle = instance.customTitle || instance.title;
-
-  useEffect(() => {
-    setTabIconUrl(tool.icon || getFaviconUrl(tool.url) || '');
-    setShowIconFallback(false);
-  }, [tool.icon, tool.url]);
 
   const handleClick = (e: React.MouseEvent) => {
     // Prevent drag from interfering with click
@@ -70,17 +61,6 @@ export const Tab = ({ instance, tool, isActive, onClose, panelId, tabNumber }: T
     if (!instance.isPinned) {
       onClose();
     }
-  };
-
-  /** Falls back to the provider favicon when a saved tab icon fails. */
-  const handleIconError = () => {
-    const fallbackUrl = getFaviconUrl(tool.url) || '';
-    if (fallbackUrl && tabIconUrl !== fallbackUrl) {
-      setTabIconUrl(fallbackUrl);
-      return;
-    }
-
-    setShowIconFallback(true);
   };
 
   return (
@@ -108,16 +88,12 @@ export const Tab = ({ instance, tool, isActive, onClose, panelId, tabNumber }: T
         className="flex items-center gap-2 flex-1 cursor-pointer min-w-0"
       >
         {/* Tool Icon */}
-        {showIconFallback ? (
-          <Bot className="w-4 h-4 flex-shrink-0" />
-        ) : (
-          <img
-            src={tabIconUrl}
-            alt={tool.name}
-            className="w-4 h-4 flex-shrink-0"
-            onError={handleIconError}
-          />
-        )}
+        <ToolIcon
+          url={tool.url}
+          icon={tool.icon}
+          name={tool.name}
+          className="w-4 h-4 flex-shrink-0"
+        />
 
         {/* Tab Title */}
         <span className="flex-1 truncate text-sm font-medium">

@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Plus } from 'lucide-react';
+import { ToolIcon } from '@/components/ToolIcon';
 
 interface ToolPickerProps {
   panelId: number;
@@ -43,9 +44,10 @@ export const ToolPicker = ({ panelId }: ToolPickerProps) => {
                 onClick={() => handleSelectTool(tool)}
                 className="flex items-center gap-2 cursor-pointer"
               >
-                <img
-                  src={tool.icon}
-                  alt={tool.name}
+                <ToolIcon
+                  url={tool.url}
+                  icon={tool.icon}
+                  name={tool.name}
                   className="w-4 h-4"
                 />
                 <span>{tool.name}</span>
