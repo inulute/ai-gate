@@ -37,14 +37,91 @@ jobs:
             echo 'matrix={"include":[{"os":"macos-latest","platform":"macos"}]}' >> $GITHUB_OUTPUT
           fi
 
+  # Resolves the tag once and makes sure a release exists to upload into, so the
+  # build jobs can attach their artifacts directly instead of round-tripping
+  # every file through the actions artifact store. Created as a draft: nothing
+  # is publicly visible until the publish job runs, which only happens if every
+  # platform succeeded.
+  prepare-release:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || github.event_name == 'workflow_dispatch'
+    outputs:
+      tag_name: ${{ steps.version_info.outputs.tag_name }}
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Extract version info
+        id: version_info
+        run: |
+          VERSION=$(node -e "console.log(require('./package.json').version)")
+          PRODUCT_NAME=$(node -e "console.log(require('./package.json').productName || 'AI Gate')")
+
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            TAG_NAME="${{ github.ref_name }}"
+          elif [[ -n "${{ github.event.inputs.version }}" ]]; then
+            TAG_NAME="v${{ github.event.inputs.version }}"
+          else
+            TAG_NAME="v${VERSION}"
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "product_name=$PRODUCT_NAME" >> $GITHUB_OUTPUT
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+
+          echo "Release version: $VERSION"
+          echo "Release tag: $TAG_NAME"
+        shell: bash
+
+      - name: Create or update tag
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -f ${{ steps.version_info.outputs.tag_name }}
+          git push -f origin ${{ steps.version_info.outputs.tag_name }}
+        shell: bash
+
+      # Hand-written release notes are preserved; only the draft flag is forced.
+      # Doing that here rather than trusting whoever ran `gh release create` to
+      # remember --draft is what makes the publish atomic: a rebuild goes back
+      # to draft while it runs, so a failure part-way through cannot leave a
+      # release showing only the platforms that happened to finish.
+      - name: Ensure a draft release exists to upload into
+        run: |
+          TAG="${{ steps.version_info.outputs.tag_name }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG exists; keeping its notes and moving it to draft for the rebuild."
+            gh release edit "$TAG" --draft=true
+          else
+            echo "No release for $TAG yet; creating a draft placeholder."
+            gh release create "$TAG" \
+              --draft \
+              --title "${{ steps.version_info.outputs.product_name }} $TAG" \
+              --notes "See CHANGELOG.md for the notes for this release."
+          fi
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build:
     name: Build ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    needs: compute-matrix
+    needs: [compute-matrix, prepare-release]
 
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.compute-matrix.outputs.matrix) }}
+
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
 
     steps:
       - name: Checkout
@@ -134,101 +211,52 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ matrix.platform }}-build
-          path: |
-            release-builds/*
-            !release-builds/*.blockmap
-            !release-builds/*.yaml
-            !release-builds/builder-*.yml
-          retention-days: 5
-          compression-level: 6
+      # Stage this platform's shippable files so the attest and upload steps get
+      # a directory that exists on every runner, rather than globs that match
+      # nothing off-platform.
+      - name: Collect release files
+        run: |
+          mkdir -p release-files
+          find release-builds -maxdepth 1 -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.zip" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.pacman" \) -exec cp {} release-files/ \;
+          echo "Files to publish:"
+          ls -lah release-files
+        shell: bash
 
-  release:
-    name: Create Release
-    needs: [compute-matrix, build]
-    runs-on: ubuntu-latest
-    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || github.event_name == 'workflow_dispatch'
-    
-    permissions:
-      contents: write
-      id-token: write
-      attestations: write
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-      
-      - name: Extract version info
-        id: version_info
-        run: |
-          VERSION=$(node -e "console.log(require('./package.json').version)")
-          PRODUCT_NAME=$(node -e "console.log(require('./package.json').productName || 'AI Gate')")
-
-          if [[ "${{ github.event_name }}" == "push" ]]; then
-            TAG_NAME="${{ github.ref_name }}"
-          elif [[ -n "${{ github.event.inputs.version }}" ]]; then
-            TAG_NAME="v${{ github.event.inputs.version }}"
-          else
-            TAG_NAME="v${VERSION}"
-          fi
-          
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "product_name=$PRODUCT_NAME" >> $GITHUB_OUTPUT
-          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
-          
-          echo "Release version: $VERSION"
-          echo "Release tag: $TAG_NAME"
-        shell: bash
-      
-      - name: Download artifacts
-        uses: actions/download-artifact@v8
-        with:
-          path: ./artifacts
-      
-      - name: Prepare release files
-        run: |
-          mkdir -p ./release-files
-          
-          echo "Artifact directories:"
-          ls -la ./artifacts/
-          
-          find ./artifacts -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.zip" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.pacman" \) -exec cp {} ./release-files/ \;
-          
-          cd ./release-files
-          echo "Release files prepared:"
-          ls -lah
-        shell: bash
-      
-      - name: Create or update tag
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -f ${{ steps.version_info.outputs.tag_name }}
-          git push -f origin ${{ steps.version_info.outputs.tag_name }}
-        shell: bash
-      
+      # Attested by the job that actually built the files, so the provenance
+      # names the real producing runner.
       - name: Attest build provenance
         uses: actions/attest-build-provenance@v4
         with:
-          subject-path: './release-files/*'
+          subject-path: 'release-files/*'
 
-      - name: Upload assets to GitHub Release
-        # Only uploads build artifacts — release notes are written manually via
-        # `gh release create` before tagging, so we don't touch the body here.
+      - name: Upload assets to the draft release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version_info.outputs.tag_name }}
-          files: |
-            ./release-files/*.exe
-            ./release-files/*.dmg
-            ./release-files/*.zip
-            ./release-files/*.AppImage
-            ./release-files/*.deb
-            ./release-files/*.pacman
-          fail_on_unmatched_files: false
+          tag_name: ${{ needs.prepare-release.outputs.tag_name }}
+          files: release-files/*
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Everything is already attached to the draft by the build jobs; this only
+  # makes it visible, and only once every platform succeeded.
+  publish:
+    name: Publish Release
+    needs: [compute-matrix, prepare-release, build]
+    runs-on: ubuntu-latest
+    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || github.event_name == 'workflow_dispatch'
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Publish the release
+        run: |
+          TAG="${{ needs.prepare-release.outputs.tag_name }}"
+          echo "Assets attached to $TAG:"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[] | "  \(.name)  \(.size) bytes"'
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false
+          echo "Published: $(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json url --jq .url)"
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
