@@ -19,6 +19,9 @@ All notable changes to AI Gate are documented here.
 ### Changed
 - The icon fallback chain used by the sidebar, tabs, tab picker, panel header, and default-tools selector is now one shared component. Tools you add yourself still resolve saved icon → site favicon → placeholder, and a request that hangs rather than fails now draws the placeholder instead of leaving an empty box.
 - Built-in providers no longer send your tool domains to Google's favicon service on launch.
+- **macOS downloads are now a single universal build.** The x64 and arm64 builds duplicated what the universal binary already covers, so macOS assets drop from six files to two. The universal `.dmg` runs natively on both Intel and Apple Silicon.
+- **Windows no longer ships a third, combined installer.** Only the per-architecture `x64` and `arm64` installers are published.
+- **Release verification moved to build attestations.** The `.asc` signatures and `SHA256SUMS.txt` are gone: GitHub publishes a SHA-256 digest for every asset, and each file now carries Sigstore-backed provenance proving which workflow and commit produced it. Verify with `gh attestation verify <file> -R inulute/ai-gate`.
 
 ### Security
 - Non-authentication pop-ups from a provider webview now go straight to the system browser instead of through the 4.7.1 **Allow / Always Allow / Decline** dialog. The consent dialog still governs anything that opens inside AI Gate; this narrows what it covers to the in-app case.
