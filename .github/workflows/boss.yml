@@ -71,6 +71,19 @@ jobs:
           echo "Product name: $PRODUCT_NAME"
         shell: bash
       
+      - name: Cache Electron binaries
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            ~/Library/Caches/electron
+            ~/Library/Caches/electron-builder
+            ~/AppData/Local/electron/Cache
+            ~/AppData/Local/electron-builder/Cache
+          key: ${{ runner.os }}-electron-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-electron-
+
       - name: Install dependencies
         run: npm ci
       
@@ -91,21 +104,18 @@ jobs:
         env:
           NODE_ENV: production
       
-      - name: Build Electron - Windows x64
+      # One invocation per platform: the arch list lives in build.win.target and
+      # build.mac.target. Passing --x64 and --arm64 as separate runs also built
+      # a third, combined installer that duplicated both and shipped unsigned.
+      - name: Build Electron - Windows
         if: matrix.platform == 'windows'
-        run: npx electron-builder --win --x64
+        run: npx electron-builder --win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Build Electron - Windows ARM64
-        if: matrix.platform == 'windows'
-        run: npx electron-builder --win --arm64
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Build Electron - macOS Universal
+      - name: Build Electron - macOS
         if: matrix.platform == 'macos'
-        run: npx electron-builder --mac --universal
+        run: npx electron-builder --mac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
@@ -137,7 +147,7 @@ jobs:
         run: |
           if command -v gpg &> /dev/null; then
             echo "Signing packages..."
-            find release-builds -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.pacman" \) -exec gpg --batch --yes --detach-sign --armor {} \;
+            find release-builds -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.pacman" -o -name "*.zip" \) -exec gpg --batch --yes --detach-sign --armor {} \;
             echo "Signed packages:"
             find release-builds -name "*.asc"
           else
