@@ -1,6 +1,13 @@
 {
   "notifications": [
     {
+      "id": "3",
+      "title": "AI Gate v4.8.0 — Kimi, Arch packages, and icons that actually show up",
+      "filename": "notification-3.md",
+      "priority": "high",
+      "date": "2026-08-16"
+    },
+    {
       "id": "2",
       "title": "AI Gate v4.5.0 — Multi-Panel Workspace Perfected",
       "filename": "notification-2.md",
